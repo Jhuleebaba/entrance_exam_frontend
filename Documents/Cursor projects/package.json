@@ -1,28 +1,9 @@
 {
-  "dependencies": {
-    "@types/multer": "^1.4.12",
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.1",
-    "multer": "^1.4.5-lts.2"
+  "name": "ghs-entrance-exam-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for GHS Entrance Exam Application",
+  "scripts": {
+    "build": "echo \"Skip build step\""
   },
-  "devDependencies": {
-    "@types/express": "^5.0.1",
-    "@types/jest": "^29.5.14",
-    "@types/json-schema": "^7.0.15",
-    "@types/mongoose": "^5.11.96",
-    "@types/node": "^22.14.0",
-    "@typescript-eslint/eslint-plugin": "^8.29.1",
-    "@typescript-eslint/parser": "^8.29.1",
-    "eslint": "^9.24.0",
-    "jest": "^29.7.0",
-    "nodemon": "^3.1.9",
-    "rimraf": "^6.0.1",
-    "ts-jest": "^29.3.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
-  }
+  "license": "ISC"
 }
