@@ -1,9 +1,0 @@
-{
-  "name": "ghs-entrance-exam-frontend",
-  "version": "1.0.0",
-  "description": "Frontend for GHS Entrance Exam Application",
-  "scripts": {
-    "build": "echo \"Skip build step\""
-  },
-  "license": "ISC"
-}
