@@ -124,7 +124,7 @@ const ExamResults = () => {
           question: {
             ...answer.question,
             subject: answer.question?.subject || 'General',
-            interface Answer {
+interface Answer {
   isCorrect: boolean;
   question: {
     marks?: number; // Optional property
