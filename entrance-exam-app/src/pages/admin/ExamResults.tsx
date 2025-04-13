@@ -215,7 +215,7 @@ const ExamResults = () => {
       // Convert the next steps string to HTML paragraphs
       const nextStepsHtml = nextStepsContent
         .split('\n')
-        .map(line => `<p style="margin: 5px 0;">${line}</p>`)
+        .map((line: string) => `<p style="margin: 5px 0;">${line}</p>`)
         .join('');
       
       // Create a hidden div to render the report
