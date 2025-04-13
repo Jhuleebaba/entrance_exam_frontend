@@ -125,15 +125,6 @@ const ExamResults = () => {
             ...answer.question,
             subject: answer.question?.subject || 'General',
 
-interface Answer {
-  isCorrect: boolean;
-  question: {
-    marks?: number; // Optional property
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
 const processedAnswers = Array.isArray(examData.answers)
   ? examData.answers.map((answer: Answer) => ({
       ...answer,
