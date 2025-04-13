@@ -245,26 +245,25 @@ const QuestionManager = () => {
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>Correct Answer</InputLabel>
                   
-const handleSelectChange = (event: SelectChangeEvent<string>) => {
-  const { name, value } = event.target;
+   const handleSelectChange = (event  SelectChangeEvent<string>) => {
+   const { name, value } = event.target;
   setFormData((prev) => ({
     ...prev,
     [name as string]: value,
   }));
 };
 <Select
-                    name="correctAnswer"
-                    value={formData.correctAnswer}
-                    onChange={handleChange}
-                    required
-                    label="Correct Answer"
-                  >
-                 
-                    <MenuItem value={formData.optionA}>Option A</MenuItem>
-                    <MenuItem value={formData.optionB}>Option B</MenuItem>
-                    <MenuItem value={formData.optionC}>Option C</MenuItem>
-                    <MenuItem value={formData.optionD}>Option D</MenuItem>
-                  </Select>
+  name="correctAnswer"
+  value={formData.correctAnswer}
+  onChange={handleSelectChange}
+  required
+  label="Correct Answer"
+>
+  <MenuItem value={formData.optionA}>Option A</MenuItem>
+  <MenuItem value={formData.optionB}>Option B</MenuItem>
+  <MenuItem value={formData.optionC}>Option C</MenuItem>
+  <MenuItem value={formData.optionD}>Option D</MenuItem>
+</Select>
                 </FormControl>
 
                 <FormControl fullWidth sx={{ mb: 2 }}>
