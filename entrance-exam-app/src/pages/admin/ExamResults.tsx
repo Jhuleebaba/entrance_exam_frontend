@@ -571,7 +571,6 @@ const ExamResults = () => {
       <Typography variant="h6" gutterBottom>
         Basic Result Information
       </Typography>
-    </Box>
   )
 )}
                 <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
