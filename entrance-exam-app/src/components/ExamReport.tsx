@@ -260,19 +260,28 @@ const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
                       <TableCell>{new Date(examData.startTime).toLocaleTimeString()}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-                        End Time
-                      </TableCell>
-                      <TableCell>{new Date(examData.endTime).toLocaleTimeString()}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-                        Duration
-                      </TableCell>
-                      <TableCell>
-                        {Math.round((new Date(examData.endTime).getTime() - new Date(examData.startTime).getTime()) / 60000)} minutes
-                      </TableCell>
-                    </TableRow>
+  <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
+    End Time
+  </TableCell>
+  <TableCell>
+    {examData?.endTime
+      ? new Date(examData.endTime).toLocaleTimeString()
+      : "N/A"}
+  </TableCell>
+</TableRow>
+<TableRow>
+  <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
+    Duration
+  </TableCell>
+  <TableCell>
+    {examData?.endTime && examData?.startTime
+      ? Math.round(
+          (new Date(examData.endTime).getTime() -
+            new Date(examData.startTime).getTime()) / 60000
+        ) + " minutes"
+      : "N/A"}
+  </TableCell>
+</TableRow>
                   </TableBody>
                 </Table>
               </TableContainer>
