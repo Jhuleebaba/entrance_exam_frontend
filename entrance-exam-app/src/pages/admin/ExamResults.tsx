@@ -124,11 +124,25 @@ const ExamResults = () => {
           question: {
             ...answer.question,
             subject: answer.question?.subject || 'General',
-            marks: answer.question?.marks || 1
-          },
-          isCorrect: !!answer.isCorrect
-        })) : []
-      };
+            interface Answer {
+  isCorrect: boolean;
+  question: {
+    marks?: number; // Optional property
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+const processedAnswers = Array.isArray(examData.answers)
+  ? examData.answers.map((answer: Answer) => ({
+      ...answer,
+      question: {
+        ...answer.question,
+        marks: answer.question?.marks || 1
+      },
+      isCorrect: !!answer.isCorrect // Ensure boolean value
+    }))
+  : [];
       
       setSelectedResult(processedResult);
       setOpen(true);
