@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import axios from 'axios';
+import { SelectChangeEvent } from '@mui/material';
 
 interface Question {
   _id: string;
