@@ -251,6 +251,15 @@ const QuestionManager = () => {
                     required
                     label="Correct Answer"
                   >
+                    
+  const handleSelectChange = (event:     
+    SelectChangeEvent<string>) => {
+  const { name, value } = event.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name as string]: value,
+  }));
+};
                     <MenuItem value={formData.optionA}>Option A</MenuItem>
                     <MenuItem value={formData.optionB}>Option B</MenuItem>
                     <MenuItem value={formData.optionC}>Option C</MenuItem>
