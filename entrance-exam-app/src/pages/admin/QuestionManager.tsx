@@ -252,10 +252,10 @@ const QuestionManager = () => {
     [name as string]: value,
   }));
 };
-   <Select
+ <Select
   name="correctAnswer"
   value={formData.correctAnswer}
-  onChange={handleSelectChange}
+  onChange={handleSelectChange} // Correctly typed handler
   required
   label="Correct Answer"
 >
