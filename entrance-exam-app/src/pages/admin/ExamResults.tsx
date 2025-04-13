@@ -564,13 +564,16 @@ const ExamResults = () => {
         </DialogTitle>
         <DialogContent>
           {selectedResult && (
-            selectedResult.answers && selectedResult.answers.length > 0 ? (
-              <ExamReport examData={selectedResult} />
-            ) : (
-              <Box sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Basic Result Information
-                </Typography>
+  selectedResult.answers && selectedResult.answers.length > 0 ? (
+    <ExamReport examData={{ ...selectedResult, answers: selectedResult.answers || [] }} />
+  ) : (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h6" gutterBottom>
+        Basic Result Information
+      </Typography>
+    </Box>
+  )
+)}
                 <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
                   <Table>
                     <TableBody>
