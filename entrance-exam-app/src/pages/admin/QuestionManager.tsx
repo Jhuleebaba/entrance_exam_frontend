@@ -246,13 +246,13 @@ const QuestionManager = () => {
                   <InputLabel>Correct Answer</InputLabel>
                   
   const handleSelectChange = (event: SelectChangeEvent<string>) => {
-   const { name, value } = event.target;
+  const { name, value } = event.target;
   setFormData((prev) => ({
     ...prev,
     [name as string]: value,
   }));
 };
-        <Select
+   <Select
   name="correctAnswer"
   value={formData.correctAnswer}
   onChange={handleSelectChange}
