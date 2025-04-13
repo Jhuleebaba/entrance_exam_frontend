@@ -244,14 +244,14 @@ const QuestionManager = () => {
 
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>Correct Answer</InputLabel>
-                  
-  const handleSelectChange = (event: SelectChangeEvent<string>) => {
+
+const handleSelectChange = (event: SelectChangeEvent<string>) => {
   const { name, value } = event.target;
   setFormData((prev) => ({
     ...prev,
     [name as string]: value,
   }));
-};
+};                  
 <Select
   name="correctAnswer"
   value={formData.correctAnswer}
