@@ -119,7 +119,7 @@ const ExamResults = () => {
           nationality: examData.user.nationality || ''
         },
         // Ensure answers array exists with proper structure
-        answers: Array.isArray(examData.answers) ? examData.answers.map(answer => ({
+        answers: Array.isArray(examData.answers) ? examData.answers.map(answer: {question : any} => ({
           ...answer,
           question: {
             ...answer.question,
