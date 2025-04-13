@@ -95,56 +95,50 @@ const ExamResults = () => {
   }, []);
 
   const handleViewDetails = async (id: string) => {
-    try {
-      setLoadingReport(id);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/exam-results/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      // Get the data from either data or result property
-      const examData = response.data.data || response.data.result;
-      
-      // Make sure we have all the required fields with proper defaults
-      const processedResult = {
-        ...examData,
-        user: {
-          ...examData.user,
-          // Provide default values for user fields that might be missing
-          surname: examData.user.surname || '',
-          firstName: examData.user.firstName || '',
-          email: examData.user.email || '',
-          sex: examData.user.sex || '',
-          stateOfOrigin: examData.user.stateOfOrigin || '',
-          nationality: examData.user.nationality || ''
-        },
-        // Ensure answers array exists with proper structure
-        answers: Array.isArray(examData.answers) ? examData.answers.map((answer: { question: any }) => ({
-          ...answer,
-          question: {
-            ...answer.question,
-            subject: answer.question?.subject || 'General',
+  try {
+    setLoadingReport(id);
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`http://localhost:5000/api/exam-results/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-const processedAnswers = Array.isArray(examData.answers)
-  ? examData.answers.map((answer: Answer) => ({
-      ...answer,
-      question: {
-        ...answer.question,
-        marks: answer.question?.marks || 1
+    // Get the data from either data or result property
+    const examData = response.data.data || response.data.result;
+
+    // Make sure we have all the required fields with proper defaults
+    const processedResult = {
+      ...examData,
+      user: {
+        ...examData.user,
+        // Provide default values for user fields that might be missing
+        surname: examData.user.surname || '',
+        firstName: examData.user.firstName || '',
+        email: examData.user.email || '',
+        sex: examData.user.sex || '',
+        stateOfOrigin: examData.user.stateOfOrigin || '',
+        nationality: examData.user.nationality || ''
       },
-      isCorrect: !!answer.isCorrect // Ensure boolean value
-    }))
-  : [];
-      
-      setSelectedResult(processedResult);
-      setOpen(true);
-    } catch (error) {
-      console.error('Error fetching result details:', error);
-      setError('Error loading exam result details. Please try again.');
-    } finally {
-      setLoadingReport(null);
-    }
-  };
+      // Ensure answers array exists with proper structure
+      answers: Array.isArray(examData.answers) ? examData.answers.map((answer: Answer) => ({
+        ...answer,
+        question: {
+          ...answer.question,
+          subject: answer.question?.subject || 'General',
+          marks: answer.question?.marks || 1,
+        },
+        isCorrect: !!answer.isCorrect, // Ensure boolean value
+      })) : []
+    };
+
+    setSelectedResult(processedResult);
+    setOpen(true);
+  } catch (error) {
+    console.error('Error fetching result details:', error);
+    setError('Error loading exam result details. Please try again.');
+  } finally {
+    setLoadingReport(null);
+  }
+};
 
   const handleClose = () => {
     setOpen(false);
