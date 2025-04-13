@@ -563,56 +563,56 @@ const ExamResults = () => {
           Exam Result Details {selectedResult ? `- ${selectedResult.user.fullName}` : ''}
         </DialogTitle>
         <DialogContent>
-          {selectedResult && (
-  selectedResult.answers && selectedResult.answers.length > 0 ? (
-    <ExamReport examData={{ ...selectedResult, answers: selectedResult.answers || [] }} />
-  ) : (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Basic Result Information
-      </Typography>
+  {selectedResult && (
+    selectedResult.answers && selectedResult.answers.length > 0 ? (
+      <ExamReport examData={{ ...selectedResult, answers: selectedResult.answers || [] }} />
+    ) : (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Basic Result Information
+        </Typography>
+        <Alert severity="info">
+          Detailed answer information is not available for this exam result. You can still download a basic report using the "Report" button in the actions column.
+        </Alert>
       </Box>
-  )
-)}
-          <Box>     
-          <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
-                  <Table>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell component="th" sx={{ width: '40%', fontWeight: 'bold' }}>Student Name</TableCell>
-                        <TableCell>{selectedResult.user.fullName}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold' }}>Exam Number</TableCell>
-                        <TableCell>{selectedResult.user.examNumber}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold' }}>Score</TableCell>
-                        <TableCell>{selectedResult.totalScore}/{selectedResult.totalObtainableMarks}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold' }}>Percentage</TableCell>
-                        <TableCell>{calculatePercentage(selectedResult.totalScore, selectedResult.totalObtainableMarks)}%</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={selectedResult.completed ? "Completed" : "In Progress"} 
-                            color={selectedResult.completed ? "success" : "warning"} 
-                          />
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                <Alert severity="info">
-                  Detailed answer information is not available for this exam result. You can still download a basic report using the "Report" button in the actions column.
-                </Alert>
-              </Box>
-            )
-          )}
-        </DialogContent>
+    )
+  )}
+  {selectedResult && (
+    <Box>
+      <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
+        <Table>
+          <TableBody>
+            <TableRow>
+              <TableCell component="th" sx={{ width: '40%', fontWeight: 'bold' }}>Student Name</TableCell>
+              <TableCell>{selectedResult.user.fullName}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell component="th" sx={{ fontWeight: 'bold' }}>Exam Number</TableCell>
+              <TableCell>{selectedResult.user.examNumber}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell component="th" sx={{ fontWeight: 'bold' }}>Score</TableCell>
+              <TableCell>{selectedResult.totalScore}/{selectedResult.totalObtainableMarks}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell component="th" sx={{ fontWeight: 'bold' }}>Percentage</TableCell>
+              <TableCell>{calculatePercentage(selectedResult.totalScore, selectedResult.totalObtainableMarks)}%</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell component="th" sx={{ fontWeight: 'bold' }}>Status</TableCell>
+              <TableCell>
+                <Chip 
+                  label={selectedResult.completed ? "Completed" : "In Progress"} 
+                  color={selectedResult.completed ? "success" : "warning"} 
+                />
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  )}
+</DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Close</Button>
         </DialogActions>
