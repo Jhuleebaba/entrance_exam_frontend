@@ -245,19 +245,22 @@ const QuestionManager = () => {
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>Correct Answer</InputLabel>
 
-  const handleSelectChange = (event: SelectChangeEvent<string>) => {
-    const { name, value } = event.target;
-    setFormData((prev) => ({
+// Define handleSelectChange outside of JSX
+const handleSelectChange = (event: SelectChangeEvent<string>) => {
+  const { name, value } = event.target;
+  setFormData((prev) => ({
     ...prev,
-    [name as string]: value,
+    [name as string]: value, // Ensure dynamic assignment
   }));
-};                  
+};
+
+// JSX Section
 <FormControl fullWidth sx={{ mb: 2 }}>
   <InputLabel>Correct Answer</InputLabel>
   <Select
     name="correctAnswer"
     value={formData.correctAnswer}
-    onChange={handleSelectChange}
+    onChange={handleSelectChange} // Use the handler here
     required
     label="Correct Answer"
   >
@@ -267,8 +270,7 @@ const QuestionManager = () => {
     <MenuItem value={formData.optionD}>Option D</MenuItem>
   </Select>
 </FormControl>
-                </FormControl>
-
+    
                 <FormControl fullWidth sx={{ mb: 2 }}>
                   <InputLabel>Subject</InputLabel>
                   <Select
