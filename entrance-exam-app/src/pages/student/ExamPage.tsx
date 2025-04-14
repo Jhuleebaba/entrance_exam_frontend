@@ -180,7 +180,7 @@ const ExamPage = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [handleSubmitExam]);
 
   // Handle browser back button and page refresh
   useEffect(() => {
