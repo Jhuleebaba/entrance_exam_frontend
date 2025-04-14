@@ -95,7 +95,7 @@ const StudentList = () => {
           </TableHead>
           <TableBody>
             {students.map((student) => (
-              <TableRow key={student._id}>
+              <TableRow key={index}>
                 <TableCell>{student.fullName}</TableCell>
                 <TableCell>{student.examNumber || 'Not assigned'}</TableCell>
                 <TableCell>{student.email}</TableCell>
