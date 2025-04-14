@@ -267,28 +267,39 @@ const ExamPage = () => {
     }));
   };
 
-  const handleSubmitExam = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `/api/exam-results/${examId}/submit`,
-        {
-          answers: examState.answers,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+  const handleSubmitExam = useCallback(async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `/api/exam-results/${examId}/submit`,
+      { answers: examState.answers },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      if (response.data.success) {
-        setShowConfirmSubmit(false);
-        setShowSuccessDialog(true);
-      }
-    } catch (error: any) {
-      console.error('Error submitting exam:', error);
-      setError(error.response?.data?.message || 'Failed to submit exam');
+    if (response.data.success) {
+      setShowConfirmSubmit(false);
+      setShowSuccessDialog(true);
     }
-  };
+  } catch (error: any) {
+    console.error('Error submitting exam:', error);
+    setError(error.response?.data?.message || 'Failed to submit exam');
+  }
+}, [examId, examState.answers]);
+
+useEffect(() => {
+  const timer = setInterval(() => {
+    setExamState((prev) => {
+      if (prev.timeLeft <= 0) {
+        clearInterval(timer);
+        handleSubmitExam();
+        return prev;
+      }
+      return { ...prev, timeLeft: prev.timeLeft - 1 };
+    });
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, [handleSubmitExam]);
 
   const handleSuccessClose = () => {
     navigate('/login');
