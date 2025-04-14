@@ -294,7 +294,6 @@ const ExamPage = () => {
   };
 
   const handleSuccessClose = () => {
-    logout();
     navigate('/login');
   };
 
