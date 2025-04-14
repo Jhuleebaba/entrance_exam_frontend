@@ -72,13 +72,15 @@ const QuestionManager = () => {
   };
 
   const handleChange = (
-  event: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>
+  event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>
 ) => {
-  const { name, value } = event.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name as string]: value,
-  }));
+  if ('target' in event && event.target.name && event.target.value) {
+    const { name, value } = event.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name as string]: value,
+    }));
+  }
 };
 
   const resetForm = () => {
