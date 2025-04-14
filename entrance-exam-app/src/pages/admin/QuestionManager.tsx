@@ -70,13 +70,15 @@ const QuestionManager = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name as string]: value
-    }));
-  };
+  const handleChange = (
+  event: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent<string>
+) => {
+  const { name, value } = event.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name as string]: value,
+  }));
+};
 
   const resetForm = () => {
     setFormData({
