@@ -22,7 +22,6 @@ import { Info as InfoIcon } from '@mui/icons-material';
 import axios from 'axios';
 
 interface Student {
-  _id: string;
   examNumber: string;
   fullName: string;
   surname: string;
