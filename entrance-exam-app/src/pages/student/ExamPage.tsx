@@ -80,18 +80,25 @@ const ExamPage = () => {
   };
 
   // Update the organizeQuestionsBySubject function
-  const organizeQuestionsBySubject = (questions: Question[]) => {
-    const subjects = Array.from(new Set(questions.map(q => q.subject)));
-    let organizedQuestions: Question[] = [];
-    
-    subjects.forEach(subject => {
-      const subjectQuestions = questions.filter(q => q.subject === subject);
-      organizedQuestions = [...organizedQuestions, ...shuffleArray(subjectQuestions)];
-    });
+  const organizeQuestionsBySubject = useCallback((questions: Question[]) => {
+  const subjects = Array.from(new Set(questions.map((q) => q.subject)));
+  let organizedQuestions: Question[] = [];
 
-    return organizedQuestions;
+  subjects.forEach((subject) => {
+    const subjectQuestions = questions.filter((q) => q.subject === subject);
+    organizedQuestions = [...organizedQuestions, ...shuffleArray(subjectQuestions)];
+  });
+
+  return organizedQuestions;
+}, []);
+
+useEffect(() => {
+  const fetchExamData = async () => {
+    // Existing logic
   };
 
+  fetchExamData();
+}, [navigate, organizeQuestionsBySubject]);
   // Update the getQuestionsBySubject function
   const getQuestionsBySubject = () => {
     const grouped: { [key: string]: QuestionWithIndex[] } = {};
