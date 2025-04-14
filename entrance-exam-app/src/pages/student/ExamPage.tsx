@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -55,8 +54,6 @@ interface QuestionStatus {
 }
 
 const ExamPage = () => {
-  const navigate = useNavigate();
-  const logout = useAuth();
   const [examId, setExamId] = useState<string>('');
   const [examState, setExamState] = useState<ExamState>({
     questions: [],
