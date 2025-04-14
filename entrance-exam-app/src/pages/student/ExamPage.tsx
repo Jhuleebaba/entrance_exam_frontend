@@ -240,31 +240,32 @@ useEffect(() => {
   };
 
   const handleNavigate = (direction: 'prev' | 'next') => {
-    const currentQuestion = examState.questions[examState.currentQuestionIndex];
-    
-    // Mark as skipped if not answered
-    if (!examState.answers[currentQuestion._id]) {
-      setQuestionStatus((prev) => ({
-        ...prev,
-        [currentQuestion._id]: {
-          ...prev[currentQuestion._id],
-          skipped: true,
-        },
-      }));
-    }
+  const currentQuestion = examState.questions[examState.currentQuestionIndex];
 
-    setExamState((prev) => {
-      const newIndex = direction === 'next' 
-        ? prev.currentQuestionIndex + 1 
-        : prev.currentQuestionIndex - 1;
+  // Mark as skipped if not answered
+  if (!examState.answers[currentQuestion._id]) {
+    setQuestionStatus((prev) => ({
+      ...prev,
+      [currentQuestion._id]: {
+        ...prev[currentQuestion._id],
+        skipped: true,
+      },
+    }));
+  }
 
-      return {
-        ...prev,
-        currentQuestionIndex: newIndex,
-        currentSubject: prev.questions[newIndex]?.subject || prev.currentSubject,
-      };
-    });
-  };
+  setExamState((prev) => {
+    const newIndex =
+      direction === 'next'
+        ? Math.min(prev.currentQuestionIndex + 1, prev.questions.length - 1) // Prevent exceeding bounds
+        : Math.max(prev.currentQuestionIndex - 1, 0); // Prevent negative index
+
+    return {
+      ...prev,
+      currentQuestionIndex: newIndex,
+      currentSubject: prev.questions[newIndex]?.subject || prev.currentSubject,
+    };
+  });
+};
 
   const handleJumpToQuestion = (index: number) => {
     setExamState((prev) => ({
