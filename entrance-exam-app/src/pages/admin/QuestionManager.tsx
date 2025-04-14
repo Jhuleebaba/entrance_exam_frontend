@@ -21,7 +21,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  SelectChangeEvent,
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -248,7 +247,7 @@ const QuestionManager = () => {
       <Select
         name="correctAnswer"
         value={formData.correctAnswer}
-        onChange={handleSelectChange}
+        onChange={handleChange}
         required
         label="Correct Answer"
       >
@@ -264,7 +263,7 @@ const QuestionManager = () => {
       <Select
         name="subject"
         value={formData.subject}
-        onChange={handleSelectChange}
+        onChange={handleChange}
         required
         label="Subject"
       >
