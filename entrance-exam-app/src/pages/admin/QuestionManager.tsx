@@ -194,6 +194,8 @@ const QuestionManager = () => {
                   rows={3}
                   sx={{ mb: 2 }}
                 />
+            </Grid>
+          </Grid>
 
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
