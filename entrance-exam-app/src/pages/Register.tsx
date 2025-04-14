@@ -20,7 +20,7 @@ import axios from '../config/axios';
 import RegistrationConfirmation from '../components/RegistrationConfirmation';
 
 const Register = () => {
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   const [formData, setFormData] = useState({
     surname: '',
     firstName: '',
