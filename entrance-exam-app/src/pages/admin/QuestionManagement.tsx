@@ -106,7 +106,7 @@ const QuestionManagement = () => {
       const token = localStorage.getItem('token');
       const response = await axios.get('/api/questions/by-subject', {
         headers: { Authorization: `Bearer ${token}` }
-      }));
+      });
       setQuestionsBySubject(response.data.questionsBySubject || []);
       
       // Get unique subjects, including any custom subjects from the database
