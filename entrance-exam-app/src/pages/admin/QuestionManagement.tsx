@@ -101,27 +101,28 @@ const QuestionManagement = () => {
     }
   };
 
-  const fetchQuestionsBySubject = useCallback( async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get('/api/questions/by-subject', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setQuestionsBySubject(response.data.questionsBySubject || []);
-      
-      // Get unique subjects, including any custom subjects from the database
-      const dbSubjects = response.data.subjects || [];
-      const allSubjects = Array.from(new Set([...AVAILABLE_SUBJECTS, ...dbSubjects]));
-      setSubjects(allSubjects);
-      
-      // Set active subject to first one if not already set
-      if (!activeSubject && allSubjects.length > 0) {
-        setActiveSubject(allSubjects[0]);
-      }
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Error fetching questions by subject');
+  const fetchQuestionsBySubject = useCallback(async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get('/api/questions/by-subject', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setQuestionsBySubject(response.data.questionsBySubject || []);
+
+    // Get unique subjects, including any custom subjects from the database
+    const dbSubjects = response.data.subjects || [];
+    const allSubjects = Array.from(new Set([...AVAILABLE_SUBJECTS, ...dbSubjects]));
+    setSubjects(allSubjects);
+
+    // Set active subject to first one if not already set
+    if (!activeSubject && allSubjects.length > 0) {
+      setActiveSubject(allSubjects[0]);
     }
-  };
+  } catch (error: any) {
+    setError(error.response?.data?.message || 'Error fetching questions by subject');
+  }
+}, [activeSubject]);
 
   const handleOpen = (question?: Question) => {
     if (question) {
