@@ -190,34 +190,33 @@ useEffect(() => {
   }, [handleSubmitExam]);
 
   // Handle browser back button and page refresh
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
+  const handleNavigate = (direction: 'prev' | 'next') => {
+  const currentQuestion = examState.questions[examState.currentQuestionIndex];
+
+  // Mark as skipped if not answered
+  if (!examState.answers[currentQuestion._id]) {
+    setQuestionStatus((prev) => ({
+      ...prev,
+      [currentQuestion._id]: {
+        ...prev[currentQuestion._id],
+        skipped: true,
+      },
+    }));
+  }
+
+  setExamState((prev) => {
+    const newIndex =
+      direction === 'next'
+        ? Math.min(prev.currentQuestionIndex + 1, prev.questions.length - 1) // Prevent exceeding bounds
+        : Math.max(prev.currentQuestionIndex - 1, 0); // Prevent negative index
+
+    return {
+      ...prev,
+      currentQuestionIndex: newIndex,
+      currentSubject: prev.questions[newIndex]?.subject || prev.currentSubject,
     };
-
-    const handlePopState = (e: PopStateEvent) => {
-      e.preventDefault();
-      // Check if student has answered any questions
-      if (Object.keys(examState.answers).length > 0) {
-        setShowAutoSubmitDialog(true);
-      } else {
-        setShowExitWarning(true);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
-
-    // Push a new entry to prevent immediate back
-    window.history.pushState(null, '', window.location.pathname);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [examState.answers]);
-
+  });
+};
   const handleAnswerChange = (value: string) => {
     const currentQuestion = examState.questions[examState.currentQuestionIndex];
     
