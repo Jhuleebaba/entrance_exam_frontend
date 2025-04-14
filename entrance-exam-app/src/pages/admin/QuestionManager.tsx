@@ -181,7 +181,8 @@ const QuestionManager = () => {
               <Typography variant="h6" gutterBottom>
                 {editMode ? 'Edit Question' : 'Add New Question'}
               </Typography>
-              
+            </Paper>
+
               <form onSubmit={handleSubmit}>
                 <TextField
                   fullWidth
