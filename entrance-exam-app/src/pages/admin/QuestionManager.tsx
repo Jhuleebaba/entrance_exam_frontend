@@ -178,153 +178,133 @@ const QuestionManager = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                {editMode ? 'Edit Question' : 'Add New Question'}
-              </Typography>
-            </Paper>
+  <Typography variant="h6" gutterBottom>
+    {editMode ? 'Edit Question' : 'Add New Question'}
+  </Typography>
 
-              <form onSubmit={handleSubmit}>
-                <TextField
-                  fullWidth
-                  label="Question"
-                  name="question"
-                  value={formData.question}
-                  onChange={handleChange}
-                  required
-                  multiline
-                  rows={3}
-                  sx={{ mb: 2 }}
-                />
-            </Grid>
-          </Grid>
+  {/* Form starts here */}
+  <form onSubmit={handleSubmit}>
+    <TextField
+      fullWidth
+      label="Question"
+      name="question"
+      value={formData.question}
+      onChange={handleChange}
+      required
+      multiline
+      rows={3}
+      sx={{ mb: 2 }}
+    />
 
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Option A"
-                      name="optionA"
-                      value={formData.optionA}
-                      onChange={handleChange}
-                      required
-                      sx={{ mb: 2 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Option B"
-                      name="optionB"
-                      value={formData.optionB}
-                      onChange={handleChange}
-                      required
-                      sx={{ mb: 2 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Option C"
-                      name="optionC"
-                      value={formData.optionC}
-                      onChange={handleChange}
-                      required
-                      sx={{ mb: 2 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Option D"
-                      name="optionD"
-                      value={formData.optionD}
-                      onChange={handleChange}
-                      required
-                      sx={{ mb: 2 }}
-                    />
-                  </Grid>
-                </Grid>
+    <Grid container spacing={2}>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Option A"
+          name="optionA"
+          value={formData.optionA}
+          onChange={handleChange}
+          required
+          sx={{ mb: 2 }}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Option B"
+          name="optionB"
+          value={formData.optionB}
+          onChange={handleChange}
+          required
+          sx={{ mb: 2 }}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Option C"
+          name="optionC"
+          value={formData.optionC}
+          onChange={handleChange}
+          required
+          sx={{ mb: 2 }}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <TextField
+          fullWidth
+          label="Option D"
+          name="optionD"
+          value={formData.optionD}
+          onChange={handleChange}
+          required
+          sx={{ mb: 2 }}
+        />
+      </Grid>
+    </Grid>
 
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel>Correct Answer</InputLabel>
+    <FormControl fullWidth sx={{ mb: 2 }}>
+      <InputLabel>Correct Answer</InputLabel>
+      <Select
+        name="correctAnswer"
+        value={formData.correctAnswer}
+        onChange={handleSelectChange}
+        required
+        label="Correct Answer"
+      >
+        <MenuItem value={formData.optionA}>Option A</MenuItem>
+        <MenuItem value={formData.optionB}>Option B</MenuItem>
+        <MenuItem value={formData.optionC}>Option C</MenuItem>
+        <MenuItem value={formData.optionD}>Option D</MenuItem>
+      </Select>
+    </FormControl>
 
-// Define handleSelectChange outside of JSX
-const handleSelectChange = (event: SelectChangeEvent<string>) => {
-  const { name, value } = event.target;
-  setFormData((prev) => ({
-    ...prev,
-    [name as string]: value, // Ensure dynamic assignment
-  }));
-};
+    <FormControl fullWidth sx={{ mb: 2 }}>
+      <InputLabel>Subject</InputLabel>
+      <Select
+        name="subject"
+        value={formData.subject}
+        onChange={handleSelectChange}
+        required
+        label="Subject"
+      >
+        {subjects.map((subject) => (
+          <MenuItem key={subject} value={subject}>
+            {subject}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
 
-// JSX Section
-<FormControl fullWidth sx={{ mb: 2 }}>
-  <InputLabel>Correct Answer</InputLabel>
-  <Select
-    name="correctAnswer"
-    value={formData.correctAnswer}
-    onChange={handleSelectChange} // Use the handler here
-    required
-    label="Correct Answer"
-  >
-    <MenuItem value={formData.optionA}>Option A</MenuItem>
-    <MenuItem value={formData.optionB}>Option B</MenuItem>
-    <MenuItem value={formData.optionC}>Option C</MenuItem>
-    <MenuItem value={formData.optionD}>Option D</MenuItem>
-  </Select>
-</FormControl>
-    
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel>Subject</InputLabel>
-                  <Select
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    required
-                    label="Subject"
-                  >
-                    {subjects.map((subject) => (
-                      <MenuItem key={subject} value={subject}>
-                        {subject}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+    <TextField
+      fullWidth
+      label="Marks"
+      name="marks"
+      type="number"
+      value={formData.marks}
+      onChange={handleChange}
+      required
+      sx={{ mb: 2 }}
+      InputProps={{ inputProps: { min: 1 } }}
+    />
 
-                <TextField
-                  fullWidth
-                  label="Marks"
-                  name="marks"
-                  type="number"
-                  value={formData.marks}
-                  onChange={handleChange}
-                  required
-                  sx={{ mb: 2 }}
-                  InputProps={{ inputProps: { min: 1 } }}
-                />
-
-                <Box sx={{ display: 'flex', gap: 2 }}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                  >
-                    {editMode ? 'Update Question' : 'Add Question'}
-                  </Button>
-                  {editMode && (
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      fullWidth
-                      onClick={resetForm}
-                    >
-                      Cancel Edit
-                    </Button>
-                  )}
-                </Box>
-              </form>
-            </Paper>
+    <Box sx={{ display: 'flex', gap: 2 }}>
+      <Button type="submit" variant="contained" color="primary" fullWidth>
+        {editMode ? 'Update Question' : 'Add Question'}
+      </Button>
+      {editMode && (
+        <Button
+          variant="outlined"
+          color="secondary"
+          fullWidth
+          onClick={resetForm}
+        >
+          Cancel Edit
+        </Button>
+      )}
+    </Box>
+  </form> {/* Properly closed form */}
+</Paper>
           </Grid>
 
           <Grid item xs={12} md={6}>
