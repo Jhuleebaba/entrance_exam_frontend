@@ -56,7 +56,7 @@ interface QuestionStatus {
 
 const ExamPage = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const logout = useAuth();
   const [examId, setExamId] = useState<string>('');
   const [examState, setExamState] = useState<ExamState>({
     questions: [],
