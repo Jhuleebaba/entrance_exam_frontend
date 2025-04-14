@@ -87,7 +87,7 @@ const QuestionManagement = () => {
 
   useEffect(() => {
     fetchQuestionsBySubject();
-  }, []);
+  }, [fetchQuestionsBySubject]);
 
   const fetchQuestions = async () => {
     try {
