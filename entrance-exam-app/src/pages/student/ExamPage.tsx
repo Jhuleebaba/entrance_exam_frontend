@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Question {
   _id: string;
@@ -98,6 +99,7 @@ useEffect(() => {
   };
 
   fetchExamData();
+  const navigate = useNavigate();
 }, [navigate, organizeQuestionsBySubject]);
   // Update the getQuestionsBySubject function
   const getQuestionsBySubject = () => {
