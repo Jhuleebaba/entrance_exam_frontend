@@ -238,7 +238,7 @@ useEffect(() => {
     }));
   };
 
-  const handleNavigate = (direction: 'prev' | 'next') => {
+  handleNavigate = (direction: 'prev' | 'next') => {
   const currentQuestion = examState.questions[examState.currentQuestionIndex];
 
   // Mark as skipped if not answered
