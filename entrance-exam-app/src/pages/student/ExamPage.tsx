@@ -29,6 +29,8 @@ import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+  const navigate = useNavigate();
+
 interface Question {
   _id: string;
   question: string;
@@ -99,7 +101,6 @@ useEffect(() => {
   };
 
   fetchExamData();
-  const navigate = useNavigate();
 }, [navigate, organizeQuestionsBySubject]);
   // Update the getQuestionsBySubject function
   const getQuestionsBySubject = () => {
