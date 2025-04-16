@@ -103,11 +103,7 @@ const QuestionManagement = () => {
     const response = await axios.get('/api/questions/by-subject', {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-      useEffect(() => {
-    fetchQuestionsBySubject();
-  }, [fetchQuestionsBySubject]);
-
+    
     setQuestionsBySubject(response.data.questionsBySubject || []);
 
     // Get unique subjects, including any custom subjects from the database
