@@ -85,10 +85,6 @@ const QuestionManagement = () => {
     marks: 1,
   });
 
-  useEffect(() => {
-    fetchQuestionsBySubject();
-  }, [fetchQuestionsBySubject]);
-
   const fetchQuestions = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -107,6 +103,10 @@ const QuestionManagement = () => {
     const response = await axios.get('/api/questions/by-subject', {
       headers: { Authorization: `Bearer ${token}` },
     });
+
+      useEffect(() => {
+    fetchQuestionsBySubject();
+  }, [fetchQuestionsBySubject]);
 
     setQuestionsBySubject(response.data.questionsBySubject || []);
 
