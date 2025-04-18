@@ -330,13 +330,13 @@ const ExamPage = () => {
     return (
       <Container maxWidth="md">
         <Box sx={{ mt: 4, mb: 4 }}>
-          <Typography variant="h6">Loading exam questions...</Typography="h6" gutterBottom>
+          <Typography variant="h6">Loading exam questions...</Typography>
                     {examState.currentSubject}
-                  </Typography>
+                  
                   <Typography variant="subtitle1">
                     Question {examState.currentQuestionIndex + 1} of {examState.questions.length}
                   </Typography>
-                </Box>
+                
                 <Typography variant="h6" color={examState.timeLeft < 300 ? "error" : "inherit"}>
                   Time Left: {formatTime(examState.timeLeft)}
                 </Typography>
