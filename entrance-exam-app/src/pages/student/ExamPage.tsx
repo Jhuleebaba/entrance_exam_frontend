@@ -375,8 +375,6 @@ const ExamPage = () => {
                   </Button>
                 )}
               </Box>
-            </Paper>
-          </Grid>
 
           <Grid item xs={12} md={4}>
             <Paper sx={{ p: 3 }}>
@@ -415,7 +413,6 @@ const ExamPage = () => {
               </Box>
             </Paper>
           </Grid>
-        </Grid>
 
         <Dialog open={showConfirmSubmit} onClose={() => setShowConfirmSubmit(false)}>
           <DialogTitle>Submit Exam</DialogTitle>
