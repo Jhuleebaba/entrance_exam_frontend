@@ -330,7 +330,8 @@ const ExamPage = () => {
     return (
       <Container maxWidth="md">
         <Box sx={{ mt: 4, mb: 4 }}>
-          <Typography variant="h6">Loading exam questions...</Typography>
+          <Typography variant="h6">Loading exam questions...
+          </Typography>
                     {examState.currentSubject}
                   
                   <Typography variant="subtitle1">
