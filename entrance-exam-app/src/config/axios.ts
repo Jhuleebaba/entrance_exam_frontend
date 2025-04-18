@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Set base URL for all axios requests
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = https://entrance-exam-backend-whlx.onrender.com;
 
 // Add request interceptor to add auth token
 axios.interceptors.request.use(
