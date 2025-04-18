@@ -20,15 +20,9 @@ import {
   Chip,
   Divider,
 } from "@mui/material";
-import {
-  NavigateNext as NextIcon,
-  NavigateBefore as PrevIcon,
-  Flag as FlagIcon,
-} from "@mui/icons-material";
+import { NavigateNext as NextIcon, NavigateBefore as PrevIcon, Flag as FlagIcon } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-// Removed unused logout from useAuth if it isn't needed
-// import { useAuth } from "../../contexts/AuthContext";
 
 interface Question {
   _id: string;
@@ -71,11 +65,8 @@ const ExamPage = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showAutoSubmitDialog, setShowAutoSubmitDialog] = useState(false);
-  const [questionStatus, setQuestionStatus] = useState<{
-    [key: string]: QuestionStatus;
-  }>({});
+  const [questionStatus, setQuestionStatus] = useState<{ [key: string]: QuestionStatus }>({});
 
-  // Function to shuffle an array
   const shuffleArray = (array: any[]) => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -85,7 +76,6 @@ const ExamPage = () => {
     return shuffled;
   };
 
-  // Memoized organizeQuestionsBySubject so it doesn't get recreated on every render.
   const organizeQuestionsBySubject = useCallback((questions: Question[]) => {
     const subjects = Array.from(new Set(questions.map((q) => q.subject)));
     let organizedQuestions: Question[] = [];
@@ -96,7 +86,6 @@ const ExamPage = () => {
     return organizedQuestions;
   }, []);
 
-  // Function to group questions by subject
   const getQuestionsBySubject = () => {
     const grouped: { [key: string]: QuestionWithIndex[] } = {};
     examState.questions.forEach((question, index) => {
@@ -108,7 +97,6 @@ const ExamPage = () => {
     return grouped;
   };
 
-  // Memoized submission function to avoid unnecessary re-renders
   const handleSubmitExam = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -127,7 +115,6 @@ const ExamPage = () => {
     }
   }, [examId, examState.answers]);
 
-  // Fetch exam data on mount. Added organizeQuestionsBySubject and navigate to dependency array.
   useEffect(() => {
     const fetchExamData = async () => {
       try {
@@ -136,40 +123,32 @@ const ExamPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const examDuration = settingsResponse.data.examDurationMinutes;
-
         const examResponse = await axios.get("/api/exam-results", {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!examResponse.data.success || !examResponse.data.results.length) {
           setError("No active exam found");
           navigate("/student");
           return;
         }
-
         const activeExam = examResponse.data.results.find((r: any) => !r.completed);
         if (!activeExam) {
           setError("No active exam found");
           navigate("/student");
           return;
         }
-
         setExamId(activeExam._id);
-
         const questionsResponse = await axios.get("/api/questions/exam", {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (questionsResponse.data.success) {
           const organizedQuestions = organizeQuestionsBySubject(questionsResponse.data.questions);
           setExamState((prev) => ({
             ...prev,
             questions: organizedQuestions,
             currentSubject: organizedQuestions[0]?.subject || "",
-            timeLeft: examDuration * 60, // Set time left based on settings
+            timeLeft: examDuration * 60,
           }));
-
-          // Initialize question status
           const initialStatus: { [key: string]: QuestionStatus } = {};
           organizedQuestions.forEach((q) => {
             initialStatus[q._id] = { answered: false, skipped: false };
@@ -186,7 +165,6 @@ const ExamPage = () => {
     fetchExamData();
   }, [navigate, organizeQuestionsBySubject]);
 
-  // Timer for the exam
   useEffect(() => {
     const timer = setInterval(() => {
       setExamState((prev) => {
@@ -198,17 +176,14 @@ const ExamPage = () => {
         return { ...prev, timeLeft: prev.timeLeft - 1 };
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [handleSubmitExam]);
 
-  // Handle browser back button and refresh events
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
-
     const handlePopState = (e: PopStateEvent) => {
       e.preventDefault();
       if (Object.keys(examState.answers).length > 0) {
@@ -217,11 +192,9 @@ const ExamPage = () => {
         setShowExitWarning(true);
       }
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
     window.history.pushState(null, "", window.location.pathname);
-
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
@@ -309,9 +282,7 @@ const ExamPage = () => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
   const getQuestionStatusColor = (index: number) => {
@@ -328,180 +299,168 @@ const ExamPage = () => {
 
   if (!currentQuestion) {
     return (
-  <Container maxWidth="lg">
-    <Box sx={{ mt: 4, mb: 4 }}>
-      {/* Content above the grid */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-              }}
-            >
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  {examState.currentSubject}
-                </Typography>
-                <Typography variant="subtitle1">
-                  Question {examState.currentQuestionIndex + 1} of {examState.questions.length}
+      <Container maxWidth="md">
+        <Box sx={{ mt: 4, mb: 4 }}>
+          <Typography variant="h6" gutterBottom>
+            Loading exam questions...
+          </Typography>
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg">
+      <Box sx={{ mt: 4, mb: 4 }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 3 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    {examState.currentSubject}
+                  </Typography>
+                  <Typography variant="subtitle1">
+                    Question {examState.currentQuestionIndex + 1} of {examState.questions.length}
+                  </Typography>
+                </Box>
+                <Typography variant="h6" color={examState.timeLeft < 300 ? "error" : "inherit"}>
+                  Time Left: {formatTime(examState.timeLeft)}
                 </Typography>
               </Box>
-              <Typography variant="h6" color={examState.timeLeft < 300 ? "error" : "inherit"}>
-                Time Left: {formatTime(examState.timeLeft)}
-              </Typography>
-            </Box>
-
-            <LinearProgress variant="determinate" value={progress} sx={{ mb: 3 }} />
-
-            <FormControl component="fieldset" sx={{ width: "100%" }}>
-              <FormLabel component="legend">
-                <Typography variant="h6" gutterBottom>
-                  {currentQuestion.question}
-                </Typography>
-              </FormLabel>
-              <RadioGroup
-                value={examState.answers[currentQuestion._id] || ""}
-                onChange={(e) => handleAnswerChange(e.target.value)}
-              >
-                {currentQuestion.options.map((option, index) => (
-                  <FormControlLabel key={index} value={option} control={<Radio />} label={option} />
-                ))}
-              </RadioGroup>
-            </FormControl>
-
-            <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-              <Button
-                startIcon={<PrevIcon />}
-                onClick={() => handleNavigate("prev")}
-                disabled={examState.currentQuestionIndex === 0}
-              >
-                Previous
-              </Button>
-              {examState.currentQuestionIndex === examState.questions.length - 1 ? (
-                <Button
-                  startIcon={<FlagIcon />}
-                  variant="contained"
-                  color="primary"
-                  onClick={() => setShowConfirmSubmit(true)}
-                >
-                  Submit Exam
-                </Button>
-              ) : (
-                <Button
-                  endIcon={<NextIcon />}
-                  onClick={() => handleNavigate("next")}
-                  variant="contained"
-                >
-                  Next
-                </Button>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Question Navigation
-            </Typography>
-            {Object.entries(getQuestionsBySubject()).map(([subject, questions]) => (
-              <Box key={`subject-${subject}`} sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: "bold" }}>
-                  {subject}
-                </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
-                  {questions.map((question) => (
-                    <Chip
-                      key={`question-${question._id}`}
-                      label={question.index + 1}
-                      onClick={() => handleJumpToQuestion(question.index)}
-                      color={getQuestionStatusColor(question.index)}
-                      variant={examState.currentQuestionIndex === question.index ? "filled" : "outlined"}
-                      sx={{ minWidth: "40px", cursor: "pointer" }}
-                    />
+              <LinearProgress variant="determinate" value={progress} sx={{ mb: 3 }} />
+              <FormControl component="fieldset" sx={{ width: "100%" }}>
+                <FormLabel component="legend">
+                  <Typography variant="h6" gutterBottom>
+                    {currentQuestion.question}
+                  </Typography>
+                </FormLabel>
+                <RadioGroup value={examState.answers[currentQuestion._id] || ""} onChange={(e) => handleAnswerChange(e.target.value)}>
+                  {currentQuestion.options.map((option, index) => (
+                    <FormControlLabel key={index} value={option} control={<Radio />} label={option} />
                   ))}
+                </RadioGroup>
+              </FormControl>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
+                <Button startIcon={<PrevIcon />} onClick={() => handleNavigate("prev")} disabled={examState.currentQuestionIndex === 0}>
+                  Previous
+                </Button>
+                {examState.currentQuestionIndex === examState.questions.length - 1 ? (
+                  <Button startIcon={<FlagIcon />} variant="contained" color="primary" onClick={() => setShowConfirmSubmit(true)}>
+                    Submit Exam
+                  </Button>
+                ) : (
+                  <Button endIcon={<NextIcon />} onClick={() => handleNavigate("next")} variant="contained">
+                    Next
+                  </Button>
+                )}
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Question Navigation
+              </Typography>
+              {Object.entries(getQuestionsBySubject()).map(([subject, questions]) => (
+                <Box key={`subject-${subject}`} sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: "bold" }}>
+                    {subject}
+                  </Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+                    {questions.map((question) => (
+                      <Chip
+                        key={`question-${question._id}`}
+                        label={question.index + 1}
+                        onClick={() => handleJumpToQuestion(question.index)}
+                        color={getQuestionStatusColor(question.index)}
+                        variant={examState.currentQuestionIndex === question.index ? "filled" : "outlined"}
+                        sx={{ minWidth: "40px", cursor: "pointer" }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Legend:
+                </Typography>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Chip label="Not Attempted" variant="outlined" size="small" />
+                  <Chip label="Answered" color="success" size="small" />
+                  <Chip label="Skipped" color="warning" size="small" />
                 </Box>
               </Box>
-            ))}
-            <Divider sx={{ my: 2 }} />
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Legend:
-              </Typography>
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <Chip label="Not Attempted" variant="outlined" size="small" />
-                <Chip label="Answered" color="success" size="small" />
-                <Chip label="Skipped" color="warning" size="small" />
-              </Box>
-            </Box>
-          </Paper>
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
-
-      {/* Dialogs */}
-      <Dialog open={showConfirmSubmit} onClose={() => setShowConfirmSubmit(false)}>
-        <DialogTitle>Submit Exam</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to submit your exam? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowConfirmSubmit(false)}>Cancel</Button>
-          <Button onClick={handleSubmitExam} variant="contained" color="primary">
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={showSuccessDialog} onClose={handleSuccessClose}>
-        <DialogTitle>Exam Submitted</DialogTitle>
-        <DialogContent>
-          <Typography>You have successfully submitted this exam.</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleSuccessClose} variant="contained" color="primary">
-            Ok
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={showExitWarning} onClose={() => setShowExitWarning(false)}>
-        <DialogTitle>Warning</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to exit the exam? This will cancel your exam attempt and you will need to start over.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowExitWarning(false)}>Continue Exam</Button>
-          <Button onClick={handleCancelExam} variant="contained" color="error">
-            Exit and Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={showAutoSubmitDialog} onClose={() => setShowAutoSubmitDialog(false)}>
-        <DialogTitle>Submit Exam</DialogTitle>
-        <DialogContent>
-          <Typography>
-            You have answered some questions. The exam will be automatically submitted if you leave. Do you want to continue?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowAutoSubmitDialog(false)}>Continue Exam</Button>
-          <Button onClick={handleAutoSubmit} variant="contained" color="primary">
-            Submit Now
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
-  </Container>
-);
+        <Dialog open={showConfirmSubmit} onClose={() => setShowConfirmSubmit(false)}>
+          <DialogTitle>Submit Exam</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to submit your exam? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowConfirmSubmit(false)}>Cancel</Button>
+            <Button onClick={handleSubmitExam} variant="contained" color="primary">
+              Submit
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={showSuccessDialog} onClose={handleSuccessClose}>
+          <DialogTitle>Exam Submitted</DialogTitle>
+          <DialogContent>
+            <Typography>You have successfully submitted this exam.</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleSuccessClose} variant="contained" color="primary">
+              Ok
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={showExitWarning} onClose={() => setShowExitWarning(false)}>
+          <DialogTitle>Warning</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to exit the exam? This will cancel your exam attempt and you will need to start over.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowExitWarning(false)}>Continue Exam</Button>
+            <Button onClick={handleCancelExam} variant="contained" color="error">
+              Exit and Cancel
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={showAutoSubmitDialog} onClose={() => setShowAutoSubmitDialog(false)}>
+          <DialogTitle>Submit Exam</DialogTitle>
+          <DialogContent>
+            <Typography>
+              You have answered some questions. The exam will be automatically submitted if you leave. Do you want to continue?
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowAutoSubmitDialog(false)}>Continue Exam</Button>
+            <Button onClick={handleAutoSubmit} variant="contained" color="primary">
+              Submit Now
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </Container>
+  );
 };
 
 export default ExamPage;
