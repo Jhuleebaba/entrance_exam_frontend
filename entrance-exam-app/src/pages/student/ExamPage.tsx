@@ -28,7 +28,6 @@ import {
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-
   const navigate = useNavigate();
 
 interface Question {
