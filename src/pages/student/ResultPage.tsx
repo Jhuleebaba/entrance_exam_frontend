@@ -8,7 +8,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Home as HomeIcon } from '@mui/icons-material';
-import axios from 'axios';
+import axios from '../../config/axios';
 import ExamReport from '../../components/ExamReport';
 
 interface Answer {
@@ -56,30 +56,57 @@ const ResultPage = () => {
   useEffect(() => {
     const fetchResult = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await axios.get(
-          `http://localhost:5000/api/exam-results/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
+
+        // Use axios config to ensure proper base URL is used
+        const response = await axios.get(`/api/exam-results/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log('Exam result response:', response.data);
+
+        // Check if we have a valid response with result data
+        if (response.data && (response.data.result || response.data.data)) {
+          // Handle both possible response structures
+          const resultData = response.data.result || response.data.data;
+
+          // Ensure proper data structure, especially for the user field
+          if (typeof resultData.user === 'string') {
+            // If user is just an ID, fetch the user data separately
+            try {
+              const userResponse = await axios.get(`/api/auth/user/${resultData.user}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              resultData.user = userResponse.data.user;
+            } catch (userError) {
+              console.error('Error fetching user data:', userError);
+            }
           }
-        );
-        
-        // Ensure the result data is properly formatted
-        if (response.data.data) {
-          setResult(response.data.data);
-        } else if (response.data.result) {
-          setResult(response.data.result);
+
+          setResult(resultData);
+          setLoading(false);
+          setError('');
         } else {
           throw new Error('Invalid response format');
         }
       } catch (error: any) {
-        setError(error.response?.data?.message || 'Failed to fetch result');
-      } finally {
+        console.error('Error fetching result:', error);
+        setError(
+          error.response?.data?.message ||
+          error.message ||
+          'Failed to fetch result. Please try again later.'
+        );
         setLoading(false);
       }
     };
 
-    fetchResult();
+    if (id) {
+      fetchResult();
+    } else {
+      setError('Invalid exam result ID');
+      setLoading(false);
+    }
   }, [id]);
 
   if (loading) {
@@ -101,7 +128,9 @@ const ResultPage = () => {
     return (
       <Container maxWidth="md">
         <Box sx={{ mt: 4 }}>
-          <Alert severity="error">{error}</Alert>
+          <Alert severity="error">
+            {error}
+          </Alert>
           <Button
             startIcon={<HomeIcon />}
             onClick={() => navigate('/student')}
@@ -115,13 +144,27 @@ const ResultPage = () => {
   }
 
   if (!result) {
-    return null;
+    return (
+      <Container maxWidth="md">
+        <Box sx={{ mt: 4 }}>
+          <Alert severity="warning">
+            No result data found. If you've just completed an exam, it may take a moment to process.
+          </Alert>
+          <Button
+            startIcon={<HomeIcon />}
+            onClick={() => navigate('/student')}
+            sx={{ mt: 2 }}
+          >
+            Back to Dashboard
+          </Button>
+        </Box>
+      </Container>
+    );
   }
 
   return (
     <Container maxWidth="md">
       <Box sx={{ mt: 4, mb: 4 }}>
-        {/* Use the new ExamReport component */}
         <ExamReport examData={result} />
       </Box>
     </Container>

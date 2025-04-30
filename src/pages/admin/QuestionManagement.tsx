@@ -1,8 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardActions,
   Container,
   Typography,
-  Button,
+  TextField,
+  Grid,
   Paper,
   Table,
   TableBody,
@@ -10,36 +16,30 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
+  MenuItem,
+  Select,
   FormControl,
   InputLabel,
-  Select,
-  MenuItem,
-  Box,
-  Alert,
-  Grid,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Tabs,
   Tab,
+  Alert,
+  CircularProgress,
   Divider,
-  Card,
-  CardHeader,
-  CardContent,
-  CardActions,
-  Chip,
-  CircularProgress
 } from '@mui/material';
-import { 
-  Add as AddIcon, 
-  Edit as EditIcon, 
-  Delete as DeleteIcon, 
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
   CloudUpload as CloudUploadIcon,
-  FileUpload as FileUploadIcon 
+  FileUpload as FileUploadIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import axios from '../../config/axios';
+import { useNavigate } from 'react-router-dom';
 
 interface Question {
   _id: string;
@@ -55,17 +55,17 @@ interface SubjectQuestions {
   questions: Question[];
 }
 
-const AVAILABLE_SUBJECTS = [
-  'Mathematics',
-  'English',
-  'Science',
-  'General Knowledge'
-];
-
 const QuestionManagement = () => {
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionsBySubject, setQuestionsBySubject] = useState<SubjectQuestions[]>([]);
-  const [subjects, setSubjects] = useState<string[]>(AVAILABLE_SUBJECTS);
+  const [subjects] = useState<string[]>([
+    'Mathematics',
+    'English',
+    'Verbal Reasoning',
+    'Quantitative Reasoning',
+    'General Paper'
+  ]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -75,7 +75,6 @@ const QuestionManagement = () => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadSubject, setUploadSubject] = useState('');
-  const [newSubject, setNewSubject] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     question: '',
@@ -84,6 +83,47 @@ const QuestionManagement = () => {
     subject: '',
     marks: 1,
   });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Initial fetch of questions 
+    fetchQuestions();
+  }, []);
+
+  useEffect(() => {
+    // When subject changes, fetch questions for that subject
+    if (activeSubject) {
+      // Define function to fetch subjects
+      const fetchForSubject = async () => {
+        try {
+          setIsLoading(true);
+          const token = localStorage.getItem("token");
+          const response = await axios.get(`/api/questions?subject=${activeSubject}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          if (response.data.success) {
+            setQuestions(response.data.questions.filter(
+              (q: Question) => q.subject === activeSubject
+            ));
+          }
+        } catch (error) {
+          console.error("Error fetching questions by subject:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchForSubject();
+    }
+  }, [activeSubject]);
+
+  useEffect(() => {
+    // Set the first subject as active if available
+    if (subjects.length > 0 && !activeSubject) {
+      setActiveSubject(subjects[0]);
+    }
+  }, [subjects, activeSubject]);
 
   const fetchQuestions = async () => {
     try {
@@ -96,29 +136,6 @@ const QuestionManagement = () => {
       setError(error.response?.data?.message || 'Error fetching questions');
     }
   };
-
-  const fetchQuestionsBySubject = useCallback(async () => {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await axios.get('/api/questions/by-subject', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    
-    setQuestionsBySubject(response.data.questionsBySubject || []);
-
-    // Get unique subjects, including any custom subjects from the database
-    const dbSubjects = response.data.subjects || [];
-    const allSubjects = Array.from(new Set([...AVAILABLE_SUBJECTS, ...dbSubjects]));
-    setSubjects(allSubjects);
-
-    // Set active subject to first one if not already set
-    if (!activeSubject && allSubjects.length > 0) {
-      setActiveSubject(allSubjects[0]);
-    }
-  } catch (error: any) {
-    setError(error.response?.data?.message || 'Error fetching questions by subject');
-  }
-}, [activeSubject]);
 
   const handleOpen = (question?: Question) => {
     if (question) {
@@ -164,8 +181,7 @@ const QuestionManagement = () => {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
-    
-    // Fetch questions when switching to All Questions tab
+
     if (newValue === 1) {
       fetchQuestions();
     }
@@ -175,12 +191,9 @@ const QuestionManagement = () => {
     setActiveSubject(subject);
   };
 
-  const handleAddNewSubject = () => {
-    if (newSubject && !subjects.includes(newSubject)) {
-      setSubjects([...subjects, newSubject]);
-      setActiveSubject(newSubject);
-      setNewSubject('');
-    }
+  const navigateToSettings = () => {
+    navigate('/admin/settings');
+    window.addEventListener('focus', refreshSettings);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,7 +233,6 @@ const QuestionManagement = () => {
       setSuccess(response.data.message);
       setTimeout(() => {
         handleUploadClose();
-        fetchQuestionsBySubject();
       }, 2000);
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error uploading file');
@@ -243,7 +255,7 @@ const QuestionManagement = () => {
         });
         setSuccess('Question added successfully');
       }
-      fetchQuestionsBySubject();
+      fetchQuestions();
       handleClose();
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error saving question');
@@ -257,7 +269,18 @@ const QuestionManagement = () => {
         await axios.delete(`/api/questions/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        fetchQuestionsBySubject();
+        
+        // Update questions state immediately
+        setQuestions(prevQuestions => prevQuestions.filter(q => q._id !== id));
+        
+        // Update questionsBySubject state immediately
+        setQuestionsBySubject(prevSubjects => 
+          prevSubjects.map(subject => ({
+            ...subject,
+            questions: subject.questions.filter(q => q._id !== id)
+          }))
+        );
+        
         setSuccess('Question deleted successfully');
       } catch (error: any) {
         setError(error.response?.data?.message || 'Error deleting question');
@@ -282,100 +305,82 @@ const QuestionManagement = () => {
   };
 
   const renderSubjectCards = () => {
+    if (isLoading) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
+    if (subjects.length === 0) {
+      return (
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              startIcon={<SettingsIcon />}
+              onClick={navigateToSettings}
+            >
+              Go to Settings
+            </Button>
+          }
+        >
+          No subjects are configured. Please go to Settings to add subjects first.
+        </Alert>
+      );
+    }
+
     return (
-      <Grid container spacing={3}>
-        {subjects.map(subject => {
-          const subjectData = questionsBySubject.find(s => s._id === subject);
+      <Grid container spacing={2}>
+        {subjects.map((subject) => {
+          const subjectData = questionsBySubject.find((s) => s._id === subject);
           const questionCount = subjectData ? subjectData.questions.length : 0;
-          
+
           return (
             <Grid item xs={12} sm={6} md={4} key={subject}>
-              <Card 
-                sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  border: activeSubject === subject ? '2px solid #1976d2' : 'none'
+              <Card
+                variant={activeSubject === subject ? 'elevation' : 'outlined'}
+                elevation={activeSubject === subject ? 3 : 0}
+                sx={{
+                  cursor: 'pointer',
+                  backgroundColor: activeSubject === subject ? 'primary.light' : 'background.paper',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-5px)',
+                    boxShadow: 3,
+                  },
                 }}
+                onClick={() => handleActiveSubjectChange(subject)}
               >
-                <CardHeader 
-                  title={subject}
-                  titleTypographyProps={{ variant: 'h6' }}
-                  action={
-                    <Chip 
-                      label={`${questionCount} questions`} 
-                      color="primary" 
-                      size="small" 
-                    />
-                  }
-                />
-                <Divider />
-                <CardContent sx={{ flexGrow: 1 }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {subject}
+                  </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {questionCount > 0 
-                      ? `This subject contains ${questionCount} questions ready for the exam.` 
-                      : 'No questions yet. Add questions using the buttons below.'}
+                    {questionCount} questions
                   </Typography>
                 </CardContent>
                 <CardActions>
-                  <Button 
-                    size="small" 
-                    startIcon={<AddIcon />}
-                    onClick={() => {
+                  <Button
+                    size="small"
+                    color="primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setActiveSubject(subject);
                       handleOpen();
                     }}
                   >
-                    Add
-                  </Button>
-                  <Button 
-                    size="small"
-                    startIcon={<CloudUploadIcon />}
-                    onClick={() => {
-                      setActiveSubject(subject);
-                      handleUploadOpen();
-                    }}
-                  >
-                    Upload
-                  </Button>
-                  <Button 
-                    size="small"
-                    color="inherit"
-                    onClick={() => handleActiveSubjectChange(subject)}
-                  >
-                    View
+                    Add Question
                   </Button>
                 </CardActions>
               </Card>
             </Grid>
           );
         })}
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', border: '1px dashed #ccc' }}>
-            <CardHeader title="Add New Subject" />
-            <CardContent sx={{ flexGrow: 1 }}>
-              <TextField
-                fullWidth
-                label="New Subject Name"
-                value={newSubject}
-                onChange={(e) => setNewSubject(e.target.value)}
-                margin="normal"
-                helperText="Enter a name for a new subject category"
-              />
-            </CardContent>
-            <CardActions>
-              <Button 
-                size="small" 
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleAddNewSubject}
-                disabled={!newSubject.trim() || subjects.includes(newSubject)}
-              >
-                Add Subject
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
       </Grid>
     );
   };
@@ -383,7 +388,7 @@ const QuestionManagement = () => {
   const renderQuestionsForActiveSubject = () => {
     const subjectData = questionsBySubject.find(s => s._id === activeSubject);
     const questionsToShow = subjectData ? subjectData.questions : [];
-    
+
     return (
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -408,7 +413,7 @@ const QuestionManagement = () => {
             </Button>
           </Box>
         </Box>
-        
+
         {questionsToShow.length === 0 ? (
           <Alert severity="info" sx={{ mt: 2 }}>
             No questions found for {activeSubject}. Add some questions using the buttons above.
@@ -458,45 +463,56 @@ const QuestionManagement = () => {
     return (
       <Box>
         <Typography variant="h5" gutterBottom>All Questions</Typography>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Question</TableCell>
-                <TableCell>Subject</TableCell>
-                <TableCell>Marks</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {questions.map((question) => (
-                <TableRow key={question._id}>
-                  <TableCell>{question.question}</TableCell>
-                  <TableCell>{question.subject}</TableCell>
-                  <TableCell>{question.marks}</TableCell>
-                  <TableCell>
-                    <Button
-                      startIcon={<EditIcon />}
-                      onClick={() => handleOpen(question)}
-                      sx={{ mr: 1 }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      startIcon={<DeleteIcon />}
-                      color="error"
-                      onClick={() => handleDelete(question._id)}
-                    >
-                      Delete
-                    </Button>
-                  </TableCell>
+
+        {questions.length === 0 ? (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            No questions found. Add questions in the By Subject tab.
+          </Alert>
+        ) : (
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Question</TableCell>
+                  <TableCell>Subject</TableCell>
+                  <TableCell>Marks</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {questions.map((question) => (
+                  <TableRow key={question._id}>
+                    <TableCell>{question.question}</TableCell>
+                    <TableCell>{question.subject}</TableCell>
+                    <TableCell>{question.marks}</TableCell>
+                    <TableCell>
+                      <Button
+                        startIcon={<EditIcon />}
+                        onClick={() => handleOpen(question)}
+                        sx={{ mr: 1 }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        startIcon={<DeleteIcon />}
+                        color="error"
+                        onClick={() => handleDelete(question._id)}
+                      >
+                        Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Box>
     );
+  };
+
+  const refreshSettings = () => {
+    // Implement refreshSettings function
   };
 
   return (
@@ -507,6 +523,23 @@ const QuestionManagement = () => {
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+        
+        <Alert 
+          severity="info" 
+          sx={{ mb: 2 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small"
+              startIcon={<SettingsIcon />}
+              onClick={navigateToSettings}
+            >
+              Manage Subjects
+            </Button>
+          }
+        >
+          Subjects are now configured in the Settings page. Please add or modify subjects in Settings first.
+        </Alert>
       </Box>
 
       {renderSubjectTabs()}
@@ -516,11 +549,11 @@ const QuestionManagement = () => {
           <Box sx={{ mb: 4 }}>
             {renderSubjectCards()}
           </Box>
-          
+
           {activeSubject && (
             <Divider sx={{ my: 4 }} />
           )}
-          
+
           {activeSubject && renderQuestionsForActiveSubject()}
         </Box>
       )}
@@ -529,94 +562,120 @@ const QuestionManagement = () => {
 
       {/* Question Add/Edit Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingQuestion ? 'Edit Question' : 'Add New Question'}
-        </DialogTitle>
+        <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add New Question'}</DialogTitle>
         <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              label="Question"
-              value={formData.question}
-              onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-              margin="normal"
-              multiline
-              rows={2}
-            />
+          <TextField
+            fullWidth
+            label="Question Text"
+            value={formData.question}
+            onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+            required
+            multiline
+            rows={3}
+            margin="normal"
+          />
+
+          <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+            Options
+          </Typography>
+
+          <Grid container spacing={2}>
             {formData.options.map((option, index) => (
-              <TextField
-                key={index}
-                fullWidth
-                label={`Option ${index + 1}`}
-                value={option}
-                onChange={(e) => {
-                  const newOptions = [...formData.options];
-                  newOptions[index] = e.target.value;
-                  setFormData({ ...formData, options: newOptions });
-                }}
-                margin="normal"
-              />
+              <Grid item xs={12} sm={6} key={index}>
+                <TextField
+                  fullWidth
+                  label={`Option ${String.fromCharCode(65 + index)}`}
+                  value={option}
+                  onChange={(e) => {
+                    const newOptions = [...formData.options];
+                    newOptions[index] = e.target.value;
+                    setFormData({ ...formData, options: newOptions });
+                  }}
+                  required
+                  margin="normal"
+                />
+              </Grid>
             ))}
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Correct Answer</InputLabel>
-              <Select
-                value={formData.correctAnswer}
-                onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
-                label="Correct Answer"
-              >
-                {formData.options.map((option, index) => (
-                  <MenuItem key={index} value={option}>
-                    {option || `Option ${index + 1}`}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Subject</InputLabel>
-              <Select
-                value={formData.subject}
-                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                label="Subject"
-              >
-                {subjects.map((subject) => (
-                  <MenuItem key={subject} value={subject}>
-                    {subject}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              fullWidth
-              label="Marks"
-              type="number"
-              value={formData.marks}
-              onChange={(e) => setFormData({ ...formData, marks: Number(e.target.value) })}
-              margin="normal"
-              inputProps={{ min: 1 }}
-            />
-          </Box>
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Correct Answer</InputLabel>
+                <Select
+                  value={formData.correctAnswer}
+                  onChange={(e) => setFormData({ ...formData, correctAnswer: e.target.value })}
+                  label="Correct Answer"
+                  required
+                >
+                  {formData.options.map((option, index) => (
+                    option && (
+                      <MenuItem key={index} value={option}>
+                        Option {String.fromCharCode(65 + index)}: {option}
+                      </MenuItem>
+                    )
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Subject</InputLabel>
+                <Select
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                  label="Subject"
+                  required
+                >
+                  {subjects.map((subject) => (
+                    <MenuItem key={subject} value={subject}>
+                      {subject}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Marks"
+                type="number"
+                value={formData.marks}
+                onChange={(e) => setFormData({ ...formData, marks: Number(e.target.value) })}
+                required
+                margin="normal"
+                InputProps={{ inputProps: { min: 1 } }}
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} color="primary" variant="contained">
+          <Button onClick={handleSubmit} variant="contained" color="primary">
             {editingQuestion ? 'Update' : 'Add'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* File Upload Dialog */}
-      <Dialog open={uploadOpen} onClose={handleUploadClose} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Bulk Upload Questions
-        </DialogTitle>
+      {/* Upload Dialog */}
+      <Dialog open={uploadOpen} onClose={handleUploadClose}>
+        <DialogTitle>Bulk Upload Questions</DialogTitle>
         <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <FormControl fullWidth margin="normal">
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Upload questions from a CSV or Excel file.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              The file should have columns for question, options, correct answer, and marks.
+            </Typography>
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Subject</InputLabel>
               <Select
                 value={uploadSubject}
                 onChange={(e) => setUploadSubject(e.target.value)}
                 label="Subject"
+                required
               >
                 {subjects.map((subject) => (
                   <MenuItem key={subject} value={subject}>
@@ -625,96 +684,51 @@ const QuestionManagement = () => {
                 ))}
               </Select>
             </FormControl>
-            
-            <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>Required Document Format:</Typography>
-              <Typography variant="body2">
-                Format each question as follows:
-              </Typography>
-              <Box component="pre" sx={{ 
-                mt: 1, 
-                p: 2, 
-                bgcolor: '#f5f5f5', 
-                borderRadius: 1, 
-                fontSize: '0.8rem',
-                whiteSpace: 'pre-wrap'
-              }}>
-{`Q: [Question text]
-A: [Option A]
-B: [Option B]
-C: [Option C]
-D: [Option D]
-Correct: [A/B/C/D]
-Marks: [number]`}
-              </Box>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Separate each question with a blank line. The system will identify the correct answer from the "Correct:" line.
-              </Typography>
-            </Alert>
-            
-            <Box 
-              sx={{ 
-                border: '2px dashed #ccc', 
-                borderRadius: 2, 
-                p: 3, 
-                mt: 2,
-                textAlign: 'center',
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: '#f5f5f5'
-                }
-              }}
-              onClick={() => document.getElementById('file-upload')?.click()}
+
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<CloudUploadIcon />}
+              fullWidth
+              sx={{ mb: 1 }}
             >
+              Select File
               <input
-                id="file-upload"
                 type="file"
-                accept=".doc,.docx,.pdf"
-                style={{ display: 'none' }}
+                hidden
+                accept=".csv,.xlsx,.xls"
                 onChange={handleFileSelect}
               />
-              <CloudUploadIcon color="primary" sx={{ fontSize: 60, mb: 1 }} />
-              <Typography variant="h6" gutterBottom>
-                {selectedFile ? selectedFile.name : 'Click to Select File'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Supported formats: .doc, .docx, .pdf (max 10MB)
-              </Typography>
-              {selectedFile && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Size: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                </Typography>
-              )}
-            </Box>
+            </Button>
             
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              After uploading, the system will parse the document and extract questions according to the format above.
-              This may take a few minutes for large documents.
-            </Typography>
-            
-            <Box sx={{ mt: 3, p: 2, bgcolor: '#fff8e1', borderRadius: 1 }}>
-              <Typography variant="subtitle2" color="warning.dark">
-                Important Notes:
+            {selectedFile && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Selected file: {selectedFile.name}
               </Typography>
-              <ul style={{ marginTop: 8, paddingLeft: 20 }}>
-                <li>Make sure the "Correct:" line explicitly states which option is correct (A, B, C, or D)</li>
-                <li>All questions in the document will be assigned to the selected subject</li>
-                <li>Each question must have exactly 4 options</li>
-                <li>Include the "Marks:" line to specify point value (defaults to 1 if omitted)</li>
-              </ul>
-            </Box>
+            )}
+            
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
+            
+            {success && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                {success}
+              </Alert>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleUploadClose} disabled={isUploading}>Cancel</Button>
           <Button 
-            onClick={handleUploadSubmit} 
-            color="primary" 
+            onClick={handleUploadSubmit}
             variant="contained"
+            color="primary"
             disabled={!selectedFile || !uploadSubject || isUploading}
-            startIcon={isUploading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
           >
-            {isUploading ? 'Uploading...' : 'Upload'}
+            {isUploading ? <CircularProgress size={24} /> : 'Upload'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -723,3 +737,4 @@ Marks: [number]`}
 };
 
 export default QuestionManagement; 
+

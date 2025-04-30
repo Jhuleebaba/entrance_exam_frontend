@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,55 +16,93 @@ import {
   CardContent,
   Grid,
   Chip,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Tooltip,
+  LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
-import { Download as DownloadIcon, Home as HomeIcon } from '@mui/icons-material';
+import { 
+  Download as DownloadIcon, 
+  Home as HomeIcon,
+} from '@mui/icons-material';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import logo from '../assets/ghs_logo.png';
 
-interface Answer {
-  question: {
+// Constants
+const PDF_SCALE = 2;
+const SNACKBAR_DURATION = 6000;
+const DEFAULT_SUBJECTS = {
+    'Mathematics': { score: 0, total: 30, percentage: 0 },
+    'English': { score: 0, total: 30, percentage: 0 },
+    'Quantitative Reasoning': { score: 0, total: 30, percentage: 0 },
+    'Verbal Reasoning': { score: 0, total: 30, percentage: 0 },
+    'General Paper': { score: 0, total: 30, percentage: 0 }
+};
+
+// Types
+interface Question {
     question: string;
     options: string[];
     correctAnswer: string;
     subject: string;
     marks: number;
-  };
-  selectedAnswer: string;
-  isCorrect: boolean;
+}
+
+interface Answer {
+    question: Question;
+    selectedAnswer: string;
+    isCorrect: boolean;
 }
 
 interface User {
-  fullName: string;
-  examNumber: string;
-  surname?: string;
-  firstName?: string;
-  email?: string;
-  sex?: string;
-  stateOfOrigin?: string;
-  nationality?: string;
+    fullName: string;
+    examNumber: string;
+    surname?: string;
+    firstName?: string;
+    email?: string;
+    sex?: string;
+    stateOfOrigin?: string;
+    nationality?: string;
+}
+
+interface SubjectScore {
+    score: number;
+    total: number;
+    percentage: number;
 }
 
 interface ExamReportProps {
-  examData: {
-    _id: string;
-    user: User;
-    totalScore: number;
-    totalQuestions: number;
-    totalObtainableMarks: number;
-    startTime: string;
-    endTime?: string;
-    completed: boolean;
-    answers: Answer[];
-  };
+    examData: {
+        _id: string;
+        user: User;
+        totalScore: number;
+        totalQuestions: number;
+        totalObtainableMarks: number;
+        startTime: string;
+        endTime?: string;
+        completed: boolean;
+        answers: Answer[];
+        nextSteps?: string;
+    };
 }
 
 const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
   const navigate = useNavigate();
   const reportRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showSubjectDetails, setShowSubjectDetails] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Not available';
-    
+
     try {
       return new Date(dateString).toLocaleString('en-US', {
         weekday: 'long',
@@ -80,323 +118,400 @@ const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
     }
   };
 
-  const calculatePercentage = (score: number, total: number) => {
+  const calculatePercentage = (score: number, total: number): string => {
     if (!total) return '0.0';
     return ((score / total) * 100).toFixed(1);
   };
 
-  const determineStatus = (percentage: number) => {
+  const determineStatus = (percentage: number): { text: string; color: 'success' | 'info' | 'warning' | 'error' } => {
     if (percentage >= 70) return { text: 'Excellent', color: 'success' };
     if (percentage >= 50) return { text: 'Good', color: 'info' };
     if (percentage >= 40) return { text: 'Pass', color: 'warning' };
     return { text: 'Fail', color: 'error' };
   };
 
-  // Calculate subject-wise scores
-  const getSubjectScores = () => {
-    const subjectScores: Record<string, { score: number; total: number; percentage: number }> = {};
-    
-    if (!examData.answers || !Array.isArray(examData.answers)) {
-      return { 'General': { score: examData.totalScore || 0, total: examData.totalObtainableMarks || 0, percentage: parseFloat(calculatePercentage(examData.totalScore || 0, examData.totalObtainableMarks || 1)) } };
+  const getSubjectScores = (): Record<string, SubjectScore> => {
+    const subjectScores: Record<string, SubjectScore> = { ...DEFAULT_SUBJECTS };
+
+    if (!examData.answers || !Array.isArray(examData.answers) || examData.answers.length === 0) {
+      console.log('No answers found, creating sample subject distribution');
+      
+      const totalScore = examData.totalScore || 0;
+      const totalMarks = examData.totalObtainableMarks || 150;
+      
+      if (totalScore > 0) {
+        const scorePerQuestion = totalScore / totalMarks;
+        Object.keys(subjectScores).forEach((subject) => {
+          const subjectScore = Math.round(scorePerQuestion * subjectScores[subject].total);
+          subjectScores[subject].score = subjectScore;
+          subjectScores[subject].percentage = parseFloat(calculatePercentage(subjectScore, subjectScores[subject].total));
+        });
+      }
+      
+      return subjectScores;
     }
-    
+
     examData.answers.forEach(answer => {
-      const subject = answer.question?.subject || 'Unknown';
-      const marks = answer.question?.marks || 1;
-      
-      if (!subjectScores[subject]) {
-        subjectScores[subject] = { score: 0, total: 0, percentage: 0 };
-      }
-      
-      subjectScores[subject].total += marks;
-      if (answer.isCorrect) {
-        subjectScores[subject].score += marks;
+      try {
+        if (!answer.question) {
+          console.warn('Answer missing question data:', answer);
+          return;
+        }
+
+        const subject = answer.question.subject;
+        const marks = answer.question.marks || 1;
+
+        if (subject in subjectScores) {
+          if (answer.isCorrect) {
+            subjectScores[subject].score += marks;
+          }
+        }
+      } catch (error) {
+        console.error('Error processing answer:', error);
       }
     });
-    
-    // Calculate percentages
-    Object.keys(subjectScores).forEach(subject => {
+
+    Object.keys(subjectScores).forEach((subject) => {
       const { score, total } = subjectScores[subject];
-      subjectScores[subject].percentage = parseFloat(((score / total) * 100).toFixed(1));
+      subjectScores[subject].percentage = parseFloat(calculatePercentage(score, total));
     });
-    
+
     return subjectScores;
   };
 
   const subjectScores = getSubjectScores();
+  // Debug: log the calculated subject scores
+  console.log('ExamReport: subjectScores =', subjectScores);
   const overallPercentage = parseFloat(calculatePercentage(examData.totalScore, examData.totalObtainableMarks));
   const status = determineStatus(overallPercentage);
 
-  const downloadPdf = () => {
-    if (reportRef.current) {
-      html2canvas(reportRef.current, {
-        scale: 2,
+  const downloadPdf = async () => {
+    try {
+      setIsGeneratingPdf(true);
+      setError(null);
+      
+      if (!reportRef.current) {
+        throw new Error('Report content not found');
+      }
+
+      const canvas = await html2canvas(reportRef.current, {
+        scale: PDF_SCALE,
         logging: false,
         useCORS: true,
-      }).then((canvas) => {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        });
-        
-        const imgWidth = 210;
-        const pageHeight = 297;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        pdf.save(`GHS-ExamReport-${examData.user.examNumber}.pdf`);
       });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`GHS-Exam-Report-${examData.user.examNumber}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      setError('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<DownloadIcon />}
-          onClick={downloadPdf}
-          sx={{ mr: 2 }}
-        >
-          Download Exam Report
-        </Button>
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={<HomeIcon />}
-          onClick={() => navigate('/student')}
-        >
-          Back to Dashboard
-        </Button>
-      </Box>
+  const handleSubjectClick = (subject: string) => {
+    setSelectedSubject(subject);
+    setShowSubjectDetails(true);
+  };
 
-      <Card ref={reportRef} sx={{ p: 2, mb: 4 }}>
-        <CardContent>
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Typography variant="h5" gutterBottom>
-              GOODLY HERITAGE COMPREHENSIVE HIGH SCHOOL
-            </Typography>
+  const renderSubjectDetails = () => {
+    if (!selectedSubject) return null;
+
+    const subjectData = subjectScores[selectedSubject];
+    const answers = examData.answers.filter(a => a.question.subject === selectedSubject);
+
+    return (
+      <Dialog
+        open={showSubjectDetails}
+        onClose={() => setShowSubjectDetails(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedSubject} Performance Details
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
             <Typography variant="h6" gutterBottom>
-              ENTRANCE EXAMINATION RESULT REPORT
+              Score: {subjectData.score} / {subjectData.total} ({subjectData.percentage}%)
             </Typography>
+            <LinearProgress 
+              variant="determinate" 
+              value={subjectData.percentage} 
+              sx={{ height: 10, borderRadius: 5, mb: 2 }}
+            />
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Question</TableCell>
+                    <TableCell>Your Answer</TableCell>
+                    <TableCell>Correct Answer</TableCell>
+                    <TableCell>Result</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {answers.map((answer, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{answer.question.question}</TableCell>
+                      <TableCell>{answer.selectedAnswer}</TableCell>
+                      <TableCell>{answer.question.correctAnswer}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={answer.isCorrect ? 'Correct' : 'Incorrect'} 
+                          color={answer.isCorrect ? 'success' : 'error'} 
+                          size="small"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSubjectDetails(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    );
+  };
 
-          <Divider sx={{ mb: 3 }} />
+  return (
+    <Box sx={{ position: 'relative' }}>
+      {isGeneratingPdf && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            zIndex: 1000,
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
 
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
-                Personal Details
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ width: '40%', fontWeight: 'bold' }}>
-                        Exam Number
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{examData.user.examNumber}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-                        Full Name
-                      </TableCell>
-                      <TableCell>{examData.user.fullName}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-                        Email Address
-                      </TableCell>
-                      <TableCell>{examData.user.email}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-                        Sex
-                      </TableCell>
-                      <TableCell>{examData.user.sex}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-                        State of Origin
-                      </TableCell>
-                      <TableCell>{examData.user.stateOfOrigin}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Grid>
+      <Paper ref={reportRef} elevation={3} sx={{ p: 3 }}>
+        <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <img
+            src={logo}
+            alt="School Logo"
+            style={{ 
+              width: '80px', 
+              height: '80px', 
+              objectFit: 'contain',
+              filter: 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1))'
+            }} 
+          />
+          <Typography variant="h5" component="h1" sx={{ mt: 1, color: 'primary.main', fontWeight: 'bold' }}>
+            GOODLY HERITAGE COMPREHENSIVE HIGH SCHOOL
+          </Typography>
+          <Typography variant="h6" component="h2" sx={{ color: 'text.secondary' }}>
+            ENTRANCE EXAMINATION RESULT REPORT
+          </Typography>
+        </Box>
 
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 2 }}>
-                Examination Details
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ width: '40%', fontWeight: 'bold' }}>
-                        Exam Date
-                      </TableCell>
-                      <TableCell>{formatDate(examData.startTime)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-                        Start Time
-                      </TableCell>
-                      <TableCell>{new Date(examData.startTime).toLocaleTimeString()}</TableCell>
-                    </TableRow>
-                    <TableRow>
-  <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-    End Time
-  </TableCell>
-  <TableCell>
-    {examData?.endTime
-      ? new Date(examData.endTime).toLocaleTimeString()
-      : "N/A"}
-  </TableCell>
-</TableRow>
-<TableRow>
-  <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>
-    Duration
-  </TableCell>
-  <TableCell>
-    {examData?.endTime && examData?.startTime
-      ? Math.round(
-          (new Date(examData.endTime).getTime() -
-            new Date(examData.startTime).getTime()) / 60000
-        ) + " minutes"
-      : "N/A"}
-  </TableCell>
-</TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Grid>
+        <Divider sx={{ my: 1 }} />
 
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 2 }}>
-                Subject-wise Scores
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: 'primary.light' }}>
-                      <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Subject</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Score</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Obtainable Marks</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Percentage</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Object.entries(subjectScores).map(([subject, data]) => (
-                      <TableRow key={subject}>
-                        <TableCell>{subject}</TableCell>
-                        <TableCell>{data.score}</TableCell>
-                        <TableCell>{data.total}</TableCell>
-                        <TableCell>{data.percentage}%</TableCell>
+        <Grid container spacing={1}>
+          <Grid item xs={12}>
+            <Card>
+              <CardContent sx={{ py: 1 }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  Student Information
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Full Name</TableCell>
+                        <TableCell sx={{ py: 1 }}>{examData.user.fullName}</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Exam Number</TableCell>
+                        <TableCell sx={{ py: 1 }}>{examData.user.examNumber}</TableCell>
                       </TableRow>
-                    ))}
-                    <TableRow sx={{ backgroundColor: 'grey.100' }}>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{examData.totalScore}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{examData.totalObtainableMarks}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{overallPercentage}%</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 2 }}>
-                Overall Performance
-              </Typography>
-              <Box sx={{ p: 2, border: '1px solid rgba(0, 0, 0, 0.12)', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h4">
-                    {overallPercentage}%
-                  </Typography>
-                  <Chip 
-                    label={status.text} 
-                    color={status.color as any} 
-                    sx={{ fontWeight: 'bold', fontSize: '1rem', padding: 1 }}
-                  />
-                </Box>
-                
-                <Typography variant="body1" gutterBottom>
-                  <strong>Scored:</strong> {examData.totalScore} out of {examData.totalObtainableMarks} marks
-                </Typography>
-                
-                <Box sx={{ mt: 2 }}>
-                  {overallPercentage >= 70 ? (
-                    <Typography variant="body1" color="success.main">
-                      Congratulations! You performed excellently in this exam. You are highly likely to be admitted.
-                    </Typography>
-                  ) : overallPercentage >= 50 ? (
-                    <Typography variant="body1" color="info.main">
-                      Good performance! You have a strong chance for admission based on your results.
-                    </Typography>
-                  ) : overallPercentage >= 40 ? (
-                    <Typography variant="body1" color="warning.main">
-                      You have passed with an acceptable score. Admission will depend on overall competition and available slots.
-                    </Typography>
-                  ) : (
-                    <Typography variant="body1" color="error.main">
-                      Your score is below the passing threshold. We encourage you to consider additional preparation and try again.
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 2 }}>
-                Next Steps
-              </Typography>
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="body2" paragraph>
-                  1. Admission results will be published within 2 weeks on the school website and notice board.
-                </Typography>
-                <Typography variant="body2" paragraph>
-                  2. If selected, you will need to complete the enrollment process by the deadline stated in your admission letter.
-                </Typography>
-                <Typography variant="body2" paragraph>
-                  3. Be prepared to provide original copies of your documents during enrollment verification.
-                </Typography>
-                <Typography variant="body2" paragraph>
-                  4. For any inquiries, please contact the admission office at admissions@goodlyheritage.edu.ng or call 08012345678.
-                </Typography>
-                <Typography variant="body2" paragraph>
-                  5. Keep this report safe as it may be required during the admission process.
-                </Typography>
-              </Paper>
-            </Grid>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Date of Exam</TableCell>
+                        <TableCell sx={{ py: 1 }}>{formatDate(examData.startTime)}</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Status</TableCell>
+                        <TableCell sx={{ py: 1 }}>
+                          <Chip
+                            label={status.text}
+                            color={status.color as any}
+                            size="small"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
           </Grid>
 
-          <Box sx={{ mt: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="textSecondary">
-              This is an electronically generated document. No signature required.
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Generated on: {new Date().toLocaleDateString()}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
+          <Grid item xs={12}>
+            <Card>
+              <CardContent sx={{ py: 1 }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  Subject-wise Performance
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Subject</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }} align="right">Score</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }} align="right">Maximum</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }} align="right">Percentage</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(subjectScores).map(([subject, scores]) => (
+                        subject !== 'Overall Score' && (
+                        <TableRow key={subject}>
+                            <TableCell sx={{ py: 1 }}>{subject}</TableCell>
+                            <TableCell sx={{ py: 1 }} align="right">{scores.score}</TableCell>
+                            <TableCell sx={{ py: 1 }} align="right">{scores.total}</TableCell>
+                            <TableCell sx={{ py: 1 }} align="right">{scores.percentage}%</TableCell>
+                        </TableRow>
+                        )
+                      ))}
+                      <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Total</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }} align="right">{examData.totalScore}</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }} align="right">{examData.totalObtainableMarks}</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', py: 1 }} align="right">{overallPercentage}%</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Card>
+              <CardContent sx={{ py: 1 }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  Overall Performance
+                </Typography>
+                <Box sx={{ textAlign: 'center', py: 1 }}>
+                  <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>
+                    {overallPercentage}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Score: {examData.totalScore} / {examData.totalObtainableMarks}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+            <Grid item xs={12}>
+              <Card>
+              <CardContent sx={{ py: 1 }}>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
+                    Next Steps
+                  </Typography>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.3 }}>
+                  {examData.nextSteps || 
+                   "1. Print a copy of your exam results for your records.\n" +
+                   "2. Check your email regularly for additional communication from the school.\n" +
+                   "3. Admission decisions will be announced within two weeks of the exam date."}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+        </Grid>
+
+        <Grid container spacing={3} sx={{ mt: 2 }}>
+          {Object.entries(subjectScores).map(([subject, data]) => (
+            <Grid item xs={12} sm={6} md={4} key={subject}>
+              <Card 
+                sx={{ 
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': { transform: 'scale(1.02)' }
+                }}
+                onClick={() => handleSubjectClick(subject)}
+              >
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {subject}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body1" sx={{ mr: 1 }}>
+                      Score:
+                    </Typography>
+                    <Typography variant="h6" color="primary">
+                      {data.score}/{data.total}
+                    </Typography>
+                  </Box>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={data.percentage} 
+                    sx={{ height: 10, borderRadius: 5 }}
+                  />
+                  <Typography variant="body2" sx={{ mt: 1, textAlign: 'right' }}>
+                    {data.percentage}%
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Tooltip title="Download exam report as PDF">
+            <Button
+              variant="contained"
+              startIcon={<DownloadIcon />}
+              onClick={downloadPdf}
+              disabled={isGeneratingPdf}
+            >
+              Download PDF
+            </Button>
+          </Tooltip>
+          <Tooltip title="Return to home page">
+            <Button
+              variant="outlined"
+              startIcon={<HomeIcon />}
+              onClick={() => navigate('/')}
+            >
+              Home
+            </Button>
+          </Tooltip>
+        </Box>
+      </Paper>
+
+      {renderSubjectDetails()}
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={SNACKBAR_DURATION}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

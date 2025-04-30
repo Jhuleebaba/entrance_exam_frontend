@@ -77,11 +77,13 @@ const ExamPage = () => {
   };
 
   const organizeQuestionsBySubject = useCallback((questions: Question[]) => {
-    const subjects = Array.from(new Set(questions.map((q) => q.subject)));
+    const subjects = ['Mathematics', 'English', 'Verbal Reasoning', 'Quantitative Reasoning', 'General Paper'];
     let organizedQuestions: Question[] = [];
     subjects.forEach((subject) => {
       const subjectQuestions = questions.filter((q) => q.subject === subject);
-      organizedQuestions = [...organizedQuestions, ...shuffleArray(subjectQuestions)];
+      // Shuffle and take only 20 questions per subject
+      const shuffledQuestions = shuffleArray(subjectQuestions).slice(0, 20);
+      organizedQuestions = [...organizedQuestions, ...shuffledQuestions];
     });
     return organizedQuestions;
   }, []);
