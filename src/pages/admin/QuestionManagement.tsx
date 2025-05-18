@@ -88,6 +88,8 @@ const QuestionManagement = () => {
   useEffect(() => {
     // Initial fetch of questions 
     fetchQuestions();
+    // Also fetch questions by subject
+    fetchQuestionsBySubject();
   }, []);
 
   useEffect(() => {
@@ -134,6 +136,21 @@ const QuestionManagement = () => {
       setQuestions(response.data.questions);
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error fetching questions');
+    }
+  };
+
+  const fetchQuestionsBySubject = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/questions/by-subject', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setQuestionsBySubject(response.data.questionsBySubject);
+      }
+    } catch (error) {
+      console.error("Error fetching questions by subject:", error);
     }
   };
 
@@ -189,6 +206,31 @@ const QuestionManagement = () => {
 
   const handleActiveSubjectChange = (subject: string) => {
     setActiveSubject(subject);
+    // After setting the active subject, refresh the questions for this subject
+    if (subject) {
+      fetchQuestionsForSubject(subject);
+    }
+  };
+
+  // Add a new function to fetch questions for a specific subject
+  const fetchQuestionsForSubject = async (subject: string) => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`/api/questions?subject=${subject}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.data.success) {
+        setQuestions(response.data.questions.filter(
+          (q: Question) => q.subject === subject
+        ));
+      }
+    } catch (error) {
+      console.error("Error fetching questions by subject:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const navigateToSettings = () => {
@@ -255,7 +297,39 @@ const QuestionManagement = () => {
         });
         setSuccess('Question added successfully');
       }
-      fetchQuestions();
+      // Update both questions and questionsBySubject
+      await fetchQuestions();
+      
+      // If we have an active subject, refresh that subject's questions too
+      if (activeSubject) {
+        try {
+          const response = await axios.get(`/api/questions?subject=${activeSubject}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          if (response.data.success) {
+            setQuestions(response.data.questions.filter(
+              (q: Question) => q.subject === activeSubject
+            ));
+          }
+        } catch (error) {
+          console.error("Error refreshing questions by subject:", error);
+        }
+      }
+      
+      // Also fetch questions by subject to update the subject cards
+      try {
+        const subjectResponse = await axios.get('/api/questions/by-subject', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (subjectResponse.data.success) {
+          setQuestionsBySubject(subjectResponse.data.questionsBySubject);
+        }
+      } catch (error) {
+        console.error("Error refreshing questions by subject:", error);
+      }
+      
       handleClose();
     } catch (error: any) {
       setError(error.response?.data?.message || 'Error saving question');
