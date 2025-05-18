@@ -66,6 +66,51 @@ interface SubjectQuestions {
   questions: Question[];
 }
 
+// Custom Quill modules configuration
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'script': 'sub'}, { 'script': 'super' }],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'color': [] }, { 'background': [] }],
+    ['clean'],
+    ['formula'], // Math formula button
+  ],
+  clipboard: {
+    // Toggle to add a custom pasted html handler
+    matchVisual: false,
+  }
+};
+
+const quillFormats = [
+  'header',
+  'bold', 'italic', 'underline', 'strike',
+  'script',
+  'list', 'bullet',
+  'color', 'background',
+  'formula',
+  'link', 'image', 'video',
+];
+
+const optionQuillModules = {
+  toolbar: [
+    ['bold', 'italic', 'underline'],
+    [{ 'script': 'sub'}, { 'script': 'super' }],
+    [{ 'color': [] }],
+    ['formula'],
+  ],
+  clipboard: {
+    matchVisual: false,
+  }
+};
+
+const optionQuillFormats = [
+  'bold', 'italic', 'underline',
+  'script', 'color',
+  'formula',
+];
+
 const QuestionManagement = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -742,23 +787,8 @@ const QuestionManagement = () => {
                 setCurrentOptionIndex(-1);
               }}
               theme="snow"
-              modules={{
-                toolbar: [
-                  [{ 'header': [1, 2, 3, false] }],
-                  ['bold', 'italic', 'underline', 'strike'],
-                  [{ 'script': 'sub'}, { 'script': 'super' }],
-                  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                  ['clean'],
-                  ['formula'], // Math formula button
-                ],
-              }}
-              formats={[
-                'header',
-                'bold', 'italic', 'underline', 'strike',
-                'script',
-                'list', 'bullet',
-                'formula',
-              ]}
+              modules={quillModules}
+              formats={quillFormats}
               style={{ height: '200px', marginBottom: '20px' }}
             />
           </Box>
@@ -784,7 +814,6 @@ const QuestionManagement = () => {
                         onClick={() => {
                           setCurrentEditor('option');
                           setCurrentOptionIndex(index);
-                          setTimeout(() => insertSymbol(item.symbol), 0);
                         }}
                         size="small"
                         variant="outlined"
@@ -807,18 +836,8 @@ const QuestionManagement = () => {
                     setCurrentOptionIndex(index);
                   }}
                   theme="snow"
-                  modules={{
-                    toolbar: [
-                      ['bold', 'italic', 'underline'],
-                      [{ 'script': 'sub'}, { 'script': 'super' }],
-                      ['formula'],
-                    ],
-                  }}
-                  formats={[
-                    'bold', 'italic', 'underline',
-                    'script',
-                    'formula',
-                  ]}
+                  modules={optionQuillModules}
+                  formats={optionQuillFormats}
                   className="option-editor"
                   style={{ height: '100px', marginBottom: '10px' }}
                 />
