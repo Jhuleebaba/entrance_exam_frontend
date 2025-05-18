@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -29,6 +29,8 @@ import {
   Alert,
   CircularProgress,
   Divider,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,10 +38,19 @@ import {
   Delete as DeleteIcon,
   CloudUpload as CloudUploadIcon,
   FileUpload as FileUploadIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  FormatBold as FormatBoldIcon,
+  FormatItalic as FormatItalicIcon,
+  FormatUnderlined as FormatUnderlinedIcon,
+  SuperscriptOutlined as SuperscriptIcon,
+  SubscriptOutlined as SubscriptIcon,
 } from '@mui/icons-material';
 import axios from '../../config/axios';
 import { useNavigate } from 'react-router-dom';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import 'katex/dist/katex.min.css';
+import './QuestionEditor.css';
 
 interface Question {
   _id: string;
@@ -84,6 +95,9 @@ const QuestionManagement = () => {
     marks: 1,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const quillRef = useRef<ReactQuill>(null);
+  const [currentEditor, setCurrentEditor] = useState<string>('question');
+  const [currentOptionIndex, setCurrentOptionIndex] = useState<number>(-1);
 
   useEffect(() => {
     // Initial fetch of questions 
@@ -505,7 +519,9 @@ const QuestionManagement = () => {
               <TableBody>
                 {questionsToShow.map((question) => (
                   <TableRow key={question._id}>
-                    <TableCell>{question.question}</TableCell>
+                    <TableCell>
+                      <div dangerouslySetInnerHTML={{ __html: question.question }} />
+                    </TableCell>
                     <TableCell>{question.marks}</TableCell>
                     <TableCell>
                       <Button
@@ -556,7 +572,9 @@ const QuestionManagement = () => {
               <TableBody>
                 {questions.map((question) => (
                   <TableRow key={question._id}>
-                    <TableCell>{question.question}</TableCell>
+                    <TableCell>
+                      <div dangerouslySetInnerHTML={{ __html: question.question }} />
+                    </TableCell>
                     <TableCell>{question.subject}</TableCell>
                     <TableCell>{question.marks}</TableCell>
                     <TableCell>
@@ -588,6 +606,57 @@ const QuestionManagement = () => {
   const refreshSettings = () => {
     // Implement refreshSettings function
   };
+
+  // Function to insert special characters into the editor
+  const insertSymbol = (symbol: string) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    
+    const range = editor.getSelection();
+    if (range) {
+      editor.insertText(range.index, symbol);
+      editor.setSelection({ index: range.index + symbol.length, length: 0 });
+    } else {
+      // If no selection, insert at the end
+      const length = editor.getLength();
+      editor.insertText(length - 1, symbol);
+      editor.setSelection({ index: length - 1 + symbol.length, length: 0 });
+    }
+  };
+
+  // Special symbols collection for mathematics
+  const mathSymbols = [
+    { symbol: '°', label: 'Degree' },
+    { symbol: '²', label: 'Squared' },
+    { symbol: '³', label: 'Cubed' },
+    { symbol: '√', label: 'Square Root' },
+    { symbol: '∛', label: 'Cube Root' },
+    { symbol: 'π', label: 'Pi' },
+    { symbol: '∑', label: 'Sum' },
+    { symbol: '∫', label: 'Integral' },
+    { symbol: '∞', label: 'Infinity' },
+    { symbol: '≈', label: 'Approximately' },
+    { symbol: '≠', label: 'Not Equal' },
+    { symbol: '≤', label: 'Less Than or Equal' },
+    { symbol: '≥', label: 'Greater Than or Equal' },
+    { symbol: '±', label: 'Plus Minus' },
+    { symbol: '×', label: 'Multiply' },
+    { symbol: '÷', label: 'Divide' },
+    { symbol: '∈', label: 'Element Of' },
+    { symbol: '∉', label: 'Not Element Of' },
+    { symbol: '∩', label: 'Intersection' },
+    { symbol: '∪', label: 'Union' },
+    { symbol: '⊂', label: 'Subset' },
+    { symbol: '⊃', label: 'Superset' },
+    { symbol: '∠', label: 'Angle' },
+    { symbol: '∥', label: 'Parallel' },
+    { symbol: '⊥', label: 'Perpendicular' },
+    { symbol: 'Δ', label: 'Delta' },
+    { symbol: 'θ', label: 'Theta' },
+    { symbol: 'λ', label: 'Lambda' },
+    { symbol: 'μ', label: 'Mu' },
+    { symbol: 'σ', label: 'Sigma' },
+  ];
 
   return (
     <Container maxWidth="lg">
@@ -638,16 +707,61 @@ const QuestionManagement = () => {
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add New Question'}</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Question Text"
-            value={formData.question}
-            onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-            required
-            multiline
-            rows={3}
-            margin="normal"
-          />
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Question Text
+            </Typography>
+            {/* Special Symbols Toolbar */}
+            <Box className="special-symbols">
+              <Typography variant="caption" sx={{ width: '100%', mb: 1 }}>
+                Special Symbols:
+              </Typography>
+              {mathSymbols.map((item, index) => (
+                <Tooltip key={index} title={item.label}>
+                  <Button
+                    className="symbol-button"
+                    onClick={() => {
+                      setCurrentEditor('question');
+                      setCurrentOptionIndex(-1);
+                      setTimeout(() => insertSymbol(item.symbol), 0);
+                    }}
+                    size="small"
+                    variant="outlined"
+                  >
+                    {item.symbol}
+                  </Button>
+                </Tooltip>
+              ))}
+            </Box>
+            <ReactQuill
+              ref={quillRef}
+              value={formData.question}
+              onChange={(value) => setFormData({ ...formData, question: value })}
+              onFocus={() => {
+                setCurrentEditor('question');
+                setCurrentOptionIndex(-1);
+              }}
+              theme="snow"
+              modules={{
+                toolbar: [
+                  [{ 'header': [1, 2, 3, false] }],
+                  ['bold', 'italic', 'underline', 'strike'],
+                  [{ 'script': 'sub'}, { 'script': 'super' }],
+                  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                  ['clean'],
+                  ['formula'], // Math formula button
+                ],
+              }}
+              formats={[
+                'header',
+                'bold', 'italic', 'underline', 'strike',
+                'script',
+                'list', 'bullet',
+                'formula',
+              ]}
+              style={{ height: '200px', marginBottom: '20px' }}
+            />
+          </Box>
 
           <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
             Options
@@ -656,17 +770,57 @@ const QuestionManagement = () => {
           <Grid container spacing={2}>
             {formData.options.map((option, index) => (
               <Grid item xs={12} sm={6} key={index}>
-                <TextField
-                  fullWidth
-                  label={`Option ${String.fromCharCode(65 + index)}`}
+                <Typography variant="body2" gutterBottom>
+                  Option {String.fromCharCode(65 + index)}
+                </Typography>
+                <Box className="special-symbols">
+                  <Typography variant="caption" sx={{ width: '100%', mb: 1 }}>
+                    Special Symbols:
+                  </Typography>
+                  {mathSymbols.slice(0, 10).map((item, symbolIndex) => (
+                    <Tooltip key={symbolIndex} title={item.label}>
+                      <Button
+                        className="symbol-button"
+                        onClick={() => {
+                          setCurrentEditor('option');
+                          setCurrentOptionIndex(index);
+                          setTimeout(() => insertSymbol(item.symbol), 0);
+                        }}
+                        size="small"
+                        variant="outlined"
+                      >
+                        {item.symbol}
+                      </Button>
+                    </Tooltip>
+                  ))}
+                </Box>
+                <ReactQuill
+                  ref={currentEditor === 'option' && currentOptionIndex === index ? quillRef : undefined}
                   value={option}
-                  onChange={(e) => {
+                  onChange={(value) => {
                     const newOptions = [...formData.options];
-                    newOptions[index] = e.target.value;
+                    newOptions[index] = value;
                     setFormData({ ...formData, options: newOptions });
                   }}
-                  required
-                  margin="normal"
+                  onFocus={() => {
+                    setCurrentEditor('option');
+                    setCurrentOptionIndex(index);
+                  }}
+                  theme="snow"
+                  modules={{
+                    toolbar: [
+                      ['bold', 'italic', 'underline'],
+                      [{ 'script': 'sub'}, { 'script': 'super' }],
+                      ['formula'],
+                    ],
+                  }}
+                  formats={[
+                    'bold', 'italic', 'underline',
+                    'script',
+                    'formula',
+                  ]}
+                  className="option-editor"
+                  style={{ height: '100px', marginBottom: '10px' }}
                 />
               </Grid>
             ))}
@@ -685,7 +839,10 @@ const QuestionManagement = () => {
                   {formData.options.map((option, index) => (
                     option && (
                       <MenuItem key={index} value={option}>
-                        Option {String.fromCharCode(65 + index)}: {option}
+                        <Typography variant="body2">
+                          Option {String.fromCharCode(65 + index)}:&nbsp;
+                          <span dangerouslySetInnerHTML={{ __html: option }} />
+                        </Typography>
                       </MenuItem>
                     )
                   ))}
