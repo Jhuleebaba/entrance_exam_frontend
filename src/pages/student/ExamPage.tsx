@@ -121,28 +121,39 @@ const ExamPage = () => {
     const fetchExamData = async () => {
       try {
         const token = localStorage.getItem("token");
+        
+        // First get exam settings for duration
         const settingsResponse = await axios.get("/api/auth/exam-settings", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const examDuration = settingsResponse.data.examDurationMinutes;
+        const examDuration = settingsResponse.data.examDurationMinutes || 120;
+        
+        // Check for existing active exam
         const examResponse = await axios.get("/api/exam-results", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        
         if (!examResponse.data.success || !examResponse.data.results.length) {
-          setError("No active exam found");
+          setError("No active exam found. Please start an exam from the dashboard.");
           navigate("/student");
           return;
         }
+        
         const activeExam = examResponse.data.results.find((r: any) => !r.completed);
         if (!activeExam) {
-          setError("No active exam found");
+          setError("No active exam found. Please start an exam from the dashboard.");
           navigate("/student");
           return;
         }
+        
         setExamId(activeExam._id);
+        
+        // If we have an active exam but no questions, we need to get them from the questions endpoint
+        // This happens when the exam was started but the page was refreshed
         const questionsResponse = await axios.get("/api/questions/exam", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        
         if (questionsResponse.data.success) {
           const organizedQuestions = organizeQuestionsBySubject(questionsResponse.data.questions);
           setExamState((prev) => ({
@@ -156,6 +167,9 @@ const ExamPage = () => {
             initialStatus[q._id] = { answered: false, skipped: false };
           });
           setQuestionStatus(initialStatus);
+        } else {
+          setError("Failed to load exam questions");
+          navigate("/student");
         }
       } catch (error: any) {
         console.error("Error fetching exam data:", error);

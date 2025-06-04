@@ -91,6 +91,7 @@ const StudentDashboard = () => {
       );
 
       if (response.data.success) {
+        // Exam started successfully, navigate to exam page
         navigate('/student/exam');
       }
     } catch (error: any) {
@@ -254,6 +255,12 @@ const StudentDashboard = () => {
         <Paper sx={{ mt: 4, p: 3 }}>
           <Typography variant="h6" gutterBottom>
             Important Information
+            <br />
+            1. You are to answer all questions in the exam.
+            <br />
+            2. Make sure you cross check your answers before submitting.
+            <br />
+            3. If you have any issues, contact the invigilator.
           </Typography>
           {examInstructions.split('\n').map((instruction, index) => (
             <Typography key={index} paragraph>

@@ -89,8 +89,8 @@ const Settings = () => {
 
         console.log('[Frontend-Settings] Received settings:', response.data);
         
-        // The API returns settings directly
-        const settings = response.data;
+        // The API returns { success: true, settings: {...} }
+        const settings = response.data.settings || response.data;
 
         setExamDuration(settings.examDurationMinutes || 120);
         setExamInstructions(settings.examInstructions || examInstructions);
