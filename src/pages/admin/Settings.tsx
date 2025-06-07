@@ -81,10 +81,17 @@ const Settings = () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem('token');
+        
+        if (!token) {
+          setError('No authentication token found. Please log in again.');
+          return;
+        }
+        
         console.log('[Frontend-Settings] Fetching settings...');
         
         const response = await axios.get('/api/auth/settings', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000, // 10 second timeout
         });
 
         console.log('[Frontend-Settings] Received settings:', response.data);
@@ -92,58 +99,30 @@ const Settings = () => {
         // The API returns { success: true, settings: {...} }
         const settings = response.data.settings || response.data;
 
-        setExamDuration(settings.examDurationMinutes || 120);
-        setExamInstructions(settings.examInstructions || examInstructions);
-        setExamReportNextSteps(settings.examReportNextSteps || examReportNextSteps);
-        setExamSlipInstructions(settings.examSlipInstructions || examSlipInstructions);
-        setExamVenue(settings.examVenue || examVenue);
-        setTotalExamQuestions(settings.totalExamQuestions || 60);
+        // Update state with fetched settings
+        const updates = {
+          examDuration: settings.examDurationMinutes || 120,
+          examInstructions: settings.examInstructions || examInstructions,
+          examReportNextSteps: settings.examReportNextSteps || examReportNextSteps,
+          examSlipInstructions: settings.examSlipInstructions || examSlipInstructions,
+          examVenue: settings.examVenue || examVenue,
+          totalExamQuestions: settings.totalExamQuestions || 100, // Fixed to 100 questions
+        };
 
-        // Load subjects from settings
-        if (settings.questionsPerSubject) {
-          console.log('[Frontend-Settings] Loading questionsPerSubject:', settings.questionsPerSubject);
-          
-          const loadedSubjects = [];
-          
-          // If questionsPerSubject is an array (from MongoDB Map)
-          if (Array.isArray(settings.questionsPerSubject)) {
-            console.log('[Frontend-Settings] questionsPerSubject is an array');
-            for (const entry of settings.questionsPerSubject) {
-              if (Array.isArray(entry) && entry.length === 2) {
-                loadedSubjects.push({ 
-                  name: entry[0], 
-                  questions: Number(entry[1]) 
-                });
-              }
-            }
-          }
-          // If questionsPerSubject is a plain object
-          else if (typeof settings.questionsPerSubject === 'object') {
-            console.log('[Frontend-Settings] questionsPerSubject is an object');
-            for (const [name, questions] of Object.entries(settings.questionsPerSubject)) {
-              loadedSubjects.push({ 
-                name, 
-                questions: Number(questions) 
-              });
-            }
-          }
-          
-          console.log('[Frontend-Settings] Loaded subjects:', loadedSubjects);
-          
-          // Only update if we found subjects
-          if (loadedSubjects.length > 0) {
-            setSubjects(loadedSubjects);
-          } else {
-            console.warn('[Frontend-Settings] No subjects found in settings, using defaults');
-          }
-        } else {
-          console.warn('[Frontend-Settings] No questionsPerSubject in settings, using defaults');
-        }
+        // Batch state updates to prevent multiple re-renders
+        setExamDuration(updates.examDuration);
+        setExamInstructions(updates.examInstructions);
+        setExamReportNextSteps(updates.examReportNextSteps);
+        setExamSlipInstructions(updates.examSlipInstructions);
+        setExamVenue(updates.examVenue);
+        setTotalExamQuestions(updates.totalExamQuestions);
 
-        // Format the date for the date input
+        // Handle date formatting
         if (settings.examStartDate) {
           const date = new Date(settings.examStartDate);
-          setExamStartDate(date.toISOString().split('T')[0]);
+          if (!isNaN(date.getTime())) {
+            setExamStartDate(date.toISOString().split('T')[0]);
+          }
         } else {
           // Set current date as fallback
           const today = new Date();
@@ -153,11 +132,26 @@ const Settings = () => {
         setExamStartTime(settings.examStartTime || '09:00');
         setExamGroupSize(settings.examGroupSize || 10);
         setExamGroupIntervalHours(settings.examGroupIntervalHours || 2);
+
+        // Note: Subjects are now fixed and not configurable
+        console.log('[Frontend-Settings] Settings loaded successfully');
+        
       } catch (error: any) {
         console.error('[Frontend-Settings] Error fetching settings:', error);
-        // Don't show error message if it's just a 404 (settings not found yet)
-        if (error.response?.status !== 404) {
-          setError('Failed to fetch settings - using default values');
+        
+        // More specific error handling
+        if (error.code === 'ECONNABORTED') {
+          setError('Request timed out. Please check your connection and try again.');
+        } else if (error.response?.status === 401) {
+          setError('Authentication failed. Please log in again.');
+        } else if (error.response?.status === 404) {
+          // Settings not found - use defaults without showing error
+          console.log('[Frontend-Settings] Settings not found, using defaults');
+          const today = new Date();
+          setExamStartDate(today.toISOString().split('T')[0]);
+        } else {
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch settings';
+          setError(`Failed to load settings: ${errorMessage}`);
         }
 
         // Set current date as fallback for exam start date

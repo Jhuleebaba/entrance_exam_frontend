@@ -23,6 +23,7 @@ import {
 import { NavigateNext as NextIcon, NavigateBefore as PrevIcon, Flag as FlagIcon } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { performanceMonitor } from "../../utils/performance";
 
 interface Question {
   _id: string;
@@ -119,19 +120,30 @@ const ExamPage = () => {
 
   useEffect(() => {
     const fetchExamData = async () => {
+      const stopTimer = performanceMonitor.startTimer('Exam Data Loading');
+      
       try {
         const token = localStorage.getItem("token");
         
-        // First get exam settings for duration
-        const settingsResponse = await axios.get("/api/auth/exam-settings", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        if (!token) {
+          setError("No authentication token found. Please log in again.");
+          navigate("/login");
+          return;
+        }
+
+        // Use Promise.all to fetch data in parallel instead of sequential calls
+        const apiTimer = performanceMonitor.startTimer('Parallel API Calls');
+        const [settingsResponse, examResponse] = await Promise.all([
+          axios.get("/api/auth/exam-settings", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get("/api/exam-results", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        ]);
+        apiTimer();
+
         const examDuration = settingsResponse.data.examDurationMinutes || 120;
-        
-        // Check for existing active exam
-        const examResponse = await axios.get("/api/exam-results", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
         
         if (!examResponse.data.success || !examResponse.data.results.length) {
           setError("No active exam found. Please start an exam from the dashboard.");
@@ -148,33 +160,70 @@ const ExamPage = () => {
         
         setExamId(activeExam._id);
         
-        // If we have an active exam but no questions, we need to get them from the questions endpoint
-        // This happens when the exam was started but the page was refreshed
-        const questionsResponse = await axios.get("/api/questions/exam", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        if (questionsResponse.data.success) {
-          const organizedQuestions = organizeQuestionsBySubject(questionsResponse.data.questions);
+        // Check if we already have questions from exam start
+        if (activeExam.questions && activeExam.questions.length > 0) {
+          // Use existing questions from exam record
+          const organizeTimer = performanceMonitor.startTimer('Organize Questions');
+          const organizedQuestions = organizeQuestionsBySubject(activeExam.questions);
+          organizeTimer();
+          
           setExamState((prev) => ({
             ...prev,
             questions: organizedQuestions,
             currentSubject: organizedQuestions[0]?.subject || "",
             timeLeft: examDuration * 60,
           }));
+          
           const initialStatus: { [key: string]: QuestionStatus } = {};
           organizedQuestions.forEach((q) => {
             initialStatus[q._id] = { answered: false, skipped: false };
           });
           setQuestionStatus(initialStatus);
         } else {
-          setError("Failed to load exam questions");
-          navigate("/student");
+          // Fallback: fetch questions from questions endpoint
+          const questionsTimer = performanceMonitor.startTimer('Fetch Questions API');
+          const questionsResponse = await axios.get("/api/questions/exam", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          questionsTimer();
+          
+          if (questionsResponse.data.success) {
+            const organizeTimer = performanceMonitor.startTimer('Organize Questions');
+            const organizedQuestions = organizeQuestionsBySubject(questionsResponse.data.questions);
+            organizeTimer();
+            
+            setExamState((prev) => ({
+              ...prev,
+              questions: organizedQuestions,
+              currentSubject: organizedQuestions[0]?.subject || "",
+              timeLeft: examDuration * 60,
+            }));
+            const initialStatus: { [key: string]: QuestionStatus } = {};
+            organizedQuestions.forEach((q) => {
+              initialStatus[q._id] = { answered: false, skipped: false };
+            });
+            setQuestionStatus(initialStatus);
+          } else {
+            throw new Error("Failed to load exam questions from server");
+          }
         }
+        
+        // Log performance summary
+        performanceMonitor.logReport();
+        
       } catch (error: any) {
         console.error("Error fetching exam data:", error);
-        setError(error.response?.data?.message || "Error loading exam");
-        navigate("/student");
+        const errorMessage = error.response?.data?.message || error.message || "Error loading exam";
+        setError(errorMessage);
+        
+        // Don't navigate away immediately - give user a chance to retry
+        setTimeout(() => {
+          if (errorMessage.includes("No active exam")) {
+            navigate("/student");
+          }
+        }, 3000);
+      } finally {
+        stopTimer();
       }
     };
 
@@ -182,24 +231,34 @@ const ExamPage = () => {
   }, [navigate, organizeQuestionsBySubject]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setExamState((prev) => {
-        if (prev.timeLeft <= 0) {
-          clearInterval(timer);
-          handleSubmitExam();
-          return prev;
-        }
-        return { ...prev, timeLeft: prev.timeLeft - 1 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [handleSubmitExam]);
+    let timer: NodeJS.Timeout;
+    
+    if (examState.questions.length > 0) {
+      timer = setInterval(() => {
+        setExamState((prev) => {
+          if (prev.timeLeft <= 0) {
+            clearInterval(timer);
+            handleSubmitExam();
+            return prev;
+          }
+          return { ...prev, timeLeft: prev.timeLeft - 1 };
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [handleSubmitExam, examState.questions.length]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = "";
+      e.returnValue = "Are you sure you want to leave? Your exam progress may be lost.";
     };
+    
     const handlePopState = (e: PopStateEvent) => {
       e.preventDefault();
       if (Object.keys(examState.answers).length > 0) {
@@ -208,14 +267,19 @@ const ExamPage = () => {
         setShowExitWarning(true);
       }
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
-    window.history.pushState(null, "", window.location.pathname);
+    
+    // Only add listeners if we have an active exam
+    if (examState.questions.length > 0) {
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      window.addEventListener("popstate", handlePopState);
+      window.history.pushState(null, "", window.location.pathname);
+    }
+    
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [examState.answers]);
+  }, [examState.answers, examState.questions.length]);
 
   const handleAnswerChange = (value: string) => {
     const currentQuestion = examState.questions[examState.currentQuestionIndex];
