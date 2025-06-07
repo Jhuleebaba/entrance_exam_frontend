@@ -51,6 +51,54 @@ interface QuestionStatus {
   skipped: boolean;
 }
 
+// Helper function to detect if content has HTML tags
+const hasHTMLTags = (str: string): boolean => {
+  return /<[^>]*>/.test(str);
+};
+
+// Helper function to clean HTML tags from text (fallback for malformed content)
+const stripHTMLTags = (str: string): string => {
+  if (!str || typeof str !== 'string') return str;
+  
+  return str
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/&nbsp;/g, ' ') // Convert HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/\s+/g, ' ') // Clean up extra whitespace
+    .trim();
+};
+
+// Helper function to safely render content
+const renderContent = (content: string): { __html: string } => {
+  if (!content || typeof content !== 'string') {
+    return { __html: '' };
+  }
+
+  // If content has HTML tags, try to render as HTML
+  if (hasHTMLTags(content)) {
+    // Check if it's properly formatted HTML or just text with visible tags
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    
+    // If the rendered content is significantly different from the original,
+    // it means the HTML is being displayed correctly
+    if (tempDiv.textContent !== content) {
+      return { __html: content.replace(/\n/g, '<br>') };
+    } else {
+      // HTML tags are being displayed as text, so strip them
+      return { __html: stripHTMLTags(content).replace(/\n/g, '<br>') };
+    }
+  }
+  
+  // Plain text content
+  return { __html: content.replace(/\n/g, '<br>') };
+};
+
 const ExamPage = () => {
   const navigate = useNavigate();
 
@@ -446,9 +494,7 @@ const ExamPage = () => {
                         '& li': { margin: '0.25em 0' },
                         '& .ql-formula': { fontSize: '1em' }
                       }}
-                      dangerouslySetInnerHTML={{ 
-                        __html: currentQuestion.question.replace(/\n/g, '<br>') 
-                      }}
+                      dangerouslySetInnerHTML={renderContent(currentQuestion.question)}
                     />
                   </FormLabel>
                   <RadioGroup 
@@ -481,9 +527,7 @@ const ExamPage = () => {
                               '& sup': { fontSize: '0.75em', verticalAlign: 'super' },
                               '& .ql-formula': { fontSize: '1em' }
                             }}
-                            dangerouslySetInnerHTML={{ 
-                              __html: option.replace(/\n/g, '<br>') 
-                            }}
+                            dangerouslySetInnerHTML={renderContent(option)}
                           />
                         }
                         sx={{
