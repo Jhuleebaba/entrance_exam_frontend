@@ -38,11 +38,11 @@ import logo from '../assets/ghs_logo.png';
 const PDF_SCALE = 2;
 const SNACKBAR_DURATION = 6000;
 const DEFAULT_SUBJECTS = {
-    'Mathematics': { score: 0, total: 30, percentage: 0 },
-    'English': { score: 0, total: 30, percentage: 0 },
-    'Quantitative Reasoning': { score: 0, total: 30, percentage: 0 },
-    'Verbal Reasoning': { score: 0, total: 30, percentage: 0 },
-    'General Paper': { score: 0, total: 30, percentage: 0 }
+    'Mathematics': { score: 0, total: 20, percentage: 0 },
+    'English': { score: 0, total: 20, percentage: 0 },
+    'Quantitative Reasoning': { score: 0, total: 20, percentage: 0 },
+    'Verbal Reasoning': { score: 0, total: 20, percentage: 0 },
+    'General Paper': { score: 0, total: 20, percentage: 0 }
 };
 
 // Types

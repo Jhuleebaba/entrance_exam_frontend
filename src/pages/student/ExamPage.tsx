@@ -24,6 +24,7 @@ import { NavigateNext as NextIcon, NavigateBefore as PrevIcon, Flag as FlagIcon 
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { performanceMonitor } from "../../utils/performance";
+import 'react-quill/dist/quill.snow.css';
 
 interface Question {
   _id: string;
@@ -403,8 +404,8 @@ const ExamPage = () => {
           </Alert>
         )}
         <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3 }}>
+          <Grid item xs={12} lg={8}>
+            <Paper sx={{ p: 3, maxWidth: '100%', overflow: 'hidden', minHeight: '400px' }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                 <Box>
                   <Typography variant="h6" gutterBottom>
@@ -419,31 +420,98 @@ const ExamPage = () => {
                 </Typography>
               </Box>
               <LinearProgress variant="determinate" value={progress} sx={{ mb: 3 }} />
-              <FormControl component="fieldset" sx={{ width: "100%" }}>
-                <FormLabel component="legend">
-                  <Typography variant="h6" gutterBottom>
-                    {currentQuestion.question}
-                  </Typography>
-                </FormLabel>
-                <RadioGroup value={examState.answers[currentQuestion._id] || ""} onChange={(e) => handleAnswerChange(e.target.value)}>
-                  {currentQuestion.options.map((option, index) => (
-                    <FormControlLabel key={index} value={option} control={<Radio />} label={option} />
-                  ))}
-                </RadioGroup>
-              </FormControl>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-                <Button startIcon={<PrevIcon />} onClick={() => handleNavigate("prev")} disabled={examState.currentQuestionIndex === 0}>
-                  Previous
-                </Button>
-                {examState.currentQuestionIndex === examState.questions.length - 1 ? (
-                  <Button startIcon={<FlagIcon />} variant="contained" color="primary" onClick={() => setShowConfirmSubmit(true)}>
-                    Submit Exam
+              <Box sx={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto', pr: 1 }}>
+                <FormControl component="fieldset" sx={{ width: "100%" }}>
+                  <FormLabel component="legend">
+                    <Box 
+                      sx={{ 
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        maxWidth: '100%',
+                        pr: 2, // Add right padding to prevent overlap
+                        '& .ql-editor': { 
+                          padding: 0,
+                          fontSize: '1.25rem',
+                          fontWeight: 500,
+                          color: 'rgba(0, 0, 0, 0.87)',
+                          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+                        },
+                        '& p': { margin: '0.5em 0', fontSize: '1.25rem', fontWeight: 500 },
+                        '& strong': { fontWeight: 'bold' },
+                        '& em': { fontStyle: 'italic' },
+                        '& u': { textDecoration: 'underline' },
+                        '& sub': { fontSize: '0.75em', verticalAlign: 'sub' },
+                        '& sup': { fontSize: '0.75em', verticalAlign: 'super' },
+                        '& ol, & ul': { paddingLeft: '1.5em', margin: '0.5em 0' },
+                        '& li': { margin: '0.25em 0' },
+                        '& .ql-formula': { fontSize: '1em' }
+                      }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: currentQuestion.question.replace(/\n/g, '<br>') 
+                      }}
+                    />
+                  </FormLabel>
+                  <RadioGroup 
+                    value={examState.answers[currentQuestion._id] || ""} 
+                    onChange={(e) => handleAnswerChange(e.target.value)}
+                    sx={{ mt: 2 }}
+                  >
+                    {currentQuestion.options.map((option, index) => (
+                      <FormControlLabel 
+                        key={index} 
+                        value={option} 
+                        control={<Radio />} 
+                        label={
+                          <Box 
+                            sx={{ 
+                              wordBreak: 'break-word',
+                              overflowWrap: 'break-word',
+                              maxWidth: '100%',
+                              '& .ql-editor': { 
+                                padding: 0,
+                                fontSize: '1rem',
+                                color: 'rgba(0, 0, 0, 0.87)',
+                                fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
+                              },
+                              '& p': { margin: '0.25em 0', fontSize: '1rem' },
+                              '& strong': { fontWeight: 'bold' },
+                              '& em': { fontStyle: 'italic' },
+                              '& u': { textDecoration: 'underline' },
+                              '& sub': { fontSize: '0.75em', verticalAlign: 'sub' },
+                              '& sup': { fontSize: '0.75em', verticalAlign: 'super' },
+                              '& .ql-formula': { fontSize: '1em' }
+                            }}
+                            dangerouslySetInnerHTML={{ 
+                              __html: option.replace(/\n/g, '<br>') 
+                            }}
+                          />
+                        }
+                        sx={{
+                          alignItems: 'flex-start',
+                          marginBottom: 1,
+                          '& .MuiRadio-root': {
+                            alignSelf: 'flex-start',
+                            marginTop: '2px'
+                          }
+                        }}
+                      />
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
+                  <Button startIcon={<PrevIcon />} onClick={() => handleNavigate("prev")} disabled={examState.currentQuestionIndex === 0}>
+                    Previous
                   </Button>
-                ) : (
-                  <Button endIcon={<NextIcon />} onClick={() => handleNavigate("next")} variant="contained">
-                    Next
-                  </Button>
-                )}
+                  {examState.currentQuestionIndex === examState.questions.length - 1 ? (
+                    <Button startIcon={<FlagIcon />} variant="contained" color="primary" onClick={() => setShowConfirmSubmit(true)}>
+                      Submit Exam
+                    </Button>
+                  ) : (
+                    <Button endIcon={<NextIcon />} onClick={() => handleNavigate("next")} variant="contained">
+                      Next
+                    </Button>
+                  )}
+                </Box>
               </Box>
             </Paper>
           </Grid>
