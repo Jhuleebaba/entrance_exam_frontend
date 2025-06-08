@@ -19,12 +19,12 @@ import {
   Grid,
   Chip,
   Divider,
+  CircularProgress,
 } from "@mui/material";
 import { NavigateNext as NextIcon, NavigateBefore as PrevIcon, Flag as FlagIcon } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { performanceMonitor } from "../../utils/performance";
-import 'react-quill/dist/quill.snow.css';
 
 interface Question {
   _id: string;
@@ -51,54 +51,6 @@ interface QuestionStatus {
   skipped: boolean;
 }
 
-// Helper function to detect if content has HTML tags
-const hasHTMLTags = (str: string): boolean => {
-  return /<[^>]*>/.test(str);
-};
-
-// Helper function to clean HTML tags from text (fallback for malformed content)
-const stripHTMLTags = (str: string): string => {
-  if (!str || typeof str !== 'string') return str;
-  
-  return str
-    .replace(/<[^>]*>/g, '') // Remove HTML tags
-    .replace(/&nbsp;/g, ' ') // Convert HTML entities
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/\s+/g, ' ') // Clean up extra whitespace
-    .trim();
-};
-
-// Helper function to safely render content
-const renderContent = (content: string): { __html: string } => {
-  if (!content || typeof content !== 'string') {
-    return { __html: '' };
-  }
-
-  // If content has HTML tags, try to render as HTML
-  if (hasHTMLTags(content)) {
-    // Check if it's properly formatted HTML or just text with visible tags
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
-    
-    // If the rendered content is significantly different from the original,
-    // it means the HTML is being displayed correctly
-    if (tempDiv.textContent !== content) {
-      return { __html: content.replace(/\n/g, '<br>') };
-    } else {
-      // HTML tags are being displayed as text, so strip them
-      return { __html: stripHTMLTags(content).replace(/\n/g, '<br>') };
-    }
-  }
-  
-  // Plain text content
-  return { __html: content.replace(/\n/g, '<br>') };
-};
-
 const ExamPage = () => {
   const navigate = useNavigate();
 
@@ -116,6 +68,7 @@ const ExamPage = () => {
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showAutoSubmitDialog, setShowAutoSubmitDialog] = useState(false);
   const [questionStatus, setQuestionStatus] = useState<{ [key: string]: QuestionStatus }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const shuffleArray = (array: any[]) => {
     const shuffled = [...array];
@@ -151,6 +104,8 @@ const ExamPage = () => {
 
   const handleSubmitExam = useCallback(async () => {
     try {
+      setIsSubmitting(true);
+      setError("");
       const token = localStorage.getItem("token");
       const response = await axios.post(
         `/api/exam-results/${examId}/submit`,
@@ -164,6 +119,8 @@ const ExamPage = () => {
     } catch (error: any) {
       console.error("Error submitting exam:", error);
       setError(error.response?.data?.message || "Failed to submit exam");
+    } finally {
+      setIsSubmitting(false);
     }
   }, [examId, examState.answers]);
 
@@ -471,31 +428,18 @@ const ExamPage = () => {
               <Box sx={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto', pr: 1 }}>
                 <FormControl component="fieldset" sx={{ width: "100%" }}>
                   <FormLabel component="legend">
-                    <Box 
+                    <Typography 
+                      variant="h6" 
+                      gutterBottom
                       sx={{ 
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word',
                         maxWidth: '100%',
-                        pr: 2, // Add right padding to prevent overlap
-                        '& .ql-editor': { 
-                          padding: 0,
-                          fontSize: '1.25rem',
-                          fontWeight: 500,
-                          color: 'rgba(0, 0, 0, 0.87)',
-                          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                        },
-                        '& p': { margin: '0.5em 0', fontSize: '1.25rem', fontWeight: 500 },
-                        '& strong': { fontWeight: 'bold' },
-                        '& em': { fontStyle: 'italic' },
-                        '& u': { textDecoration: 'underline' },
-                        '& sub': { fontSize: '0.75em', verticalAlign: 'sub' },
-                        '& sup': { fontSize: '0.75em', verticalAlign: 'super' },
-                        '& ol, & ul': { paddingLeft: '1.5em', margin: '0.5em 0' },
-                        '& li': { margin: '0.25em 0' },
-                        '& .ql-formula': { fontSize: '1em' }
+                        pr: 2
                       }}
-                      dangerouslySetInnerHTML={renderContent(currentQuestion.question)}
-                    />
+                    >
+                      {currentQuestion.question.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")}
+                    </Typography>
                   </FormLabel>
                   <RadioGroup 
                     value={examState.answers[currentQuestion._id] || ""} 
@@ -508,27 +452,21 @@ const ExamPage = () => {
                         value={option} 
                         control={<Radio />} 
                         label={
-                          <Box 
-                            sx={{ 
-                              wordBreak: 'break-word',
-                              overflowWrap: 'break-word',
-                              maxWidth: '100%',
-                              '& .ql-editor': { 
-                                padding: 0,
-                                fontSize: '1rem',
-                                color: 'rgba(0, 0, 0, 0.87)',
-                                fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-                              },
-                              '& p': { margin: '0.25em 0', fontSize: '1rem' },
-                              '& strong': { fontWeight: 'bold' },
-                              '& em': { fontStyle: 'italic' },
-                              '& u': { textDecoration: 'underline' },
-                              '& sub': { fontSize: '0.75em', verticalAlign: 'sub' },
-                              '& sup': { fontSize: '0.75em', verticalAlign: 'super' },
-                              '& .ql-formula': { fontSize: '1em' }
-                            }}
-                            dangerouslySetInnerHTML={renderContent(option)}
-                          />
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold', mr: 1, minWidth: '20px' }}>
+                              {String.fromCharCode(65 + index)}.
+                            </Typography>
+                            <Typography 
+                              variant="body1"
+                              sx={{ 
+                                wordBreak: 'break-word',
+                                overflowWrap: 'break-word',
+                                flex: 1
+                              }}
+                            >
+                              {option.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")}
+                            </Typography>
+                          </Box>
                         }
                         sx={{
                           alignItems: 'flex-start',
@@ -547,7 +485,13 @@ const ExamPage = () => {
                     Previous
                   </Button>
                   {examState.currentQuestionIndex === examState.questions.length - 1 ? (
-                    <Button startIcon={<FlagIcon />} variant="contained" color="primary" onClick={() => setShowConfirmSubmit(true)}>
+                    <Button 
+                      startIcon={<FlagIcon />} 
+                      variant="contained" 
+                      color="primary" 
+                      onClick={() => setShowConfirmSubmit(true)}
+                      disabled={isSubmitting}
+                    >
                       Submit Exam
                     </Button>
                   ) : (
@@ -605,9 +549,17 @@ const ExamPage = () => {
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowConfirmSubmit(false)}>Cancel</Button>
-            <Button onClick={handleSubmitExam} variant="contained" color="primary">
-              Submit
+            <Button onClick={() => setShowConfirmSubmit(false)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitExam} 
+              variant="contained" 
+              color="primary"
+              disabled={isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
           </DialogActions>
         </Dialog>
