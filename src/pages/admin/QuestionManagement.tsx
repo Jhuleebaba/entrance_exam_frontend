@@ -39,11 +39,6 @@ import {
   CloudUpload as CloudUploadIcon,
   FileUpload as FileUploadIcon,
   Settings as SettingsIcon,
-  FormatBold as FormatBoldIcon,
-  FormatItalic as FormatItalicIcon,
-  FormatUnderlined as FormatUnderlinedIcon,
-  SuperscriptOutlined as SuperscriptIcon,
-  SubscriptOutlined as SubscriptIcon,
 } from '@mui/icons-material';
 import axios from '../../config/axios';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +46,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import 'katex/dist/katex.min.css';
 import './QuestionEditor.css';
+import MathRenderer from '../../components/MathRenderer';
 
 interface Question {
   _id: string;
@@ -565,7 +561,15 @@ const QuestionManagement = () => {
                 {questionsToShow.map((question) => (
                   <TableRow key={question._id}>
                     <TableCell>
-                      <div dangerouslySetInnerHTML={{ __html: question.question }} />
+                      <MathRenderer 
+                        content={question.question} 
+                        variant="text"
+                        sx={{ 
+                          maxWidth: '400px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      />
                     </TableCell>
                     <TableCell>{question.marks}</TableCell>
                     <TableCell>
@@ -573,6 +577,7 @@ const QuestionManagement = () => {
                         startIcon={<EditIcon />}
                         onClick={() => handleOpen(question)}
                         sx={{ mr: 1 }}
+                        size="small"
                       >
                         Edit
                       </Button>
@@ -580,6 +585,7 @@ const QuestionManagement = () => {
                         startIcon={<DeleteIcon />}
                         color="error"
                         onClick={() => handleDelete(question._id)}
+                        size="small"
                       >
                         Delete
                       </Button>
@@ -618,7 +624,15 @@ const QuestionManagement = () => {
                 {questions.map((question) => (
                   <TableRow key={question._id}>
                     <TableCell>
-                      <div dangerouslySetInnerHTML={{ __html: question.question }} />
+                      <MathRenderer 
+                        content={question.question} 
+                        variant="text"
+                        sx={{ 
+                          maxWidth: '400px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      />
                     </TableCell>
                     <TableCell>{question.subject}</TableCell>
                     <TableCell>{question.marks}</TableCell>
@@ -627,6 +641,7 @@ const QuestionManagement = () => {
                         startIcon={<EditIcon />}
                         onClick={() => handleOpen(question)}
                         sx={{ mr: 1 }}
+                        size="small"
                       >
                         Edit
                       </Button>
@@ -634,6 +649,7 @@ const QuestionManagement = () => {
                         startIcon={<DeleteIcon />}
                         color="error"
                         onClick={() => handleDelete(question._id)}
+                        size="small"
                       >
                         Delete
                       </Button>
@@ -648,9 +664,7 @@ const QuestionManagement = () => {
     );
   };
 
-  const refreshSettings = () => {
-    // Implement refreshSettings function
-  };
+
 
   // Function to insert special characters into the editor
   const insertSymbol = (symbol: string) => {
@@ -749,34 +763,49 @@ const QuestionManagement = () => {
       {currentTab === 1 && renderAllQuestionsList()}
 
       {/* Question Add/Edit Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
         <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add New Question'}</DialogTitle>
         <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>Mathematical Formatting Tips:</strong><br/>
+              • Use KaTeX syntax: <code>{'$x^2 + y^2 = r^2$'}</code> for inline math<br/>
+              • Use <code>{'$$\\int_0^{\\infty} e^{-x} dx$$'}</code> for display math<br/>
+              • Click symbols below or use unicode: x², √, π, α, β, ±, ≠, ≤, ≥
+            </Typography>
+          </Alert>
+          
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle1" gutterBottom>
               Question Text
             </Typography>
-            {/* Special Symbols Toolbar */}
+            {/* Mathematical Symbols Toolbar */}
             <Box className="special-symbols">
-              <Typography variant="caption" sx={{ width: '100%', mb: 1 }}>
-                Special Symbols:
+              <Typography variant="caption" sx={{ width: '100%', mb: 1, fontWeight: 'bold' }}>
+                Quick Insert Symbols:
               </Typography>
-              {mathSymbols.map((item, index) => (
-                <Tooltip key={index} title={item.label}>
-                  <Button
-                    className="symbol-button"
-                    onClick={() => {
-                      setCurrentEditor('question');
-                      setCurrentOptionIndex(-1);
-                      setTimeout(() => insertSymbol(item.symbol), 0);
-                    }}
-                    size="small"
-                    variant="outlined"
-                  >
-                    {item.symbol}
-                  </Button>
-                </Tooltip>
-              ))}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {mathSymbols.slice(0, 15).map((item, index) => (
+                  <Tooltip key={index} title={`${item.label} - Click to insert`}>
+                    <Button
+                      className="symbol-button"
+                      onClick={() => {
+                        setCurrentEditor('question');
+                        setCurrentOptionIndex(-1);
+                        setTimeout(() => insertSymbol(item.symbol), 0);
+                      }}
+                      size="small"
+                      variant="outlined"
+                      sx={{ minWidth: '32px', height: '32px', p: 0.5 }}
+                    >
+                      {item.symbol}
+                    </Button>
+                  </Tooltip>
+                ))}
+              </Box>
+              <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary' }}>
+                For complex expressions, use KaTeX: <code>{'$x^2$'}</code> or <code>{'$$\\frac{a}{b}$$'}</code>
+              </Typography>
             </Box>
             <ReactQuill
               ref={quillRef}
@@ -804,24 +833,28 @@ const QuestionManagement = () => {
                   Option {String.fromCharCode(65 + index)}
                 </Typography>
                 <Box className="special-symbols">
-                  <Typography variant="caption" sx={{ width: '100%', mb: 1 }}>
-                    Special Symbols:
+                  <Typography variant="caption" sx={{ width: '100%', mb: 1, fontWeight: 'bold' }}>
+                    Quick Symbols:
                   </Typography>
-                  {mathSymbols.slice(0, 10).map((item, symbolIndex) => (
-                    <Tooltip key={symbolIndex} title={item.label}>
-                      <Button
-                        className="symbol-button"
-                        onClick={() => {
-                          setCurrentEditor('option');
-                          setCurrentOptionIndex(index);
-                        }}
-                        size="small"
-                        variant="outlined"
-                      >
-                        {item.symbol}
-                      </Button>
-                    </Tooltip>
-                  ))}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {mathSymbols.slice(0, 8).map((item, symbolIndex) => (
+                      <Tooltip key={symbolIndex} title={`${item.label} - Click to insert`}>
+                        <Button
+                          className="symbol-button"
+                          onClick={() => {
+                            setCurrentEditor('option');
+                            setCurrentOptionIndex(index);
+                            setTimeout(() => insertSymbol(item.symbol), 0);
+                          }}
+                          size="small"
+                          variant="outlined"
+                          sx={{ minWidth: '28px', height: '28px', p: 0.3, fontSize: '0.8rem' }}
+                        >
+                          {item.symbol}
+                        </Button>
+                      </Tooltip>
+                    ))}
+                  </Box>
                 </Box>
                 <ReactQuill
                   ref={currentEditor === 'option' && currentOptionIndex === index ? quillRef : undefined}
@@ -845,6 +878,59 @@ const QuestionManagement = () => {
             ))}
           </Grid>
 
+          {/* Preview Section */}
+          {(formData.question || formData.options.some(opt => opt)) && (
+            <Box sx={{ mt: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                Question Preview
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              {formData.question && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Question:
+                  </Typography>
+                  <MathRenderer 
+                    content={formData.question} 
+                    variant="question"
+                    sx={{ 
+                      p: 1, 
+                      backgroundColor: 'grey.50',
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'grey.300'
+                    }}
+                  />
+                </Box>
+              )}
+              
+              {formData.options.some(opt => opt) && (
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Options:
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>
+                    {formData.options.map((option, index) => (
+                      option && (
+                        <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, minWidth: '25px', color: 'primary.main' }}>
+                            {String.fromCharCode(65 + index)}.
+                          </Typography>
+                          <MathRenderer 
+                            content={option} 
+                            variant="option"
+                            sx={{ flex: 1 }}
+                          />
+                        </Box>
+                      )
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth margin="normal">
@@ -858,10 +944,20 @@ const QuestionManagement = () => {
                   {formData.options.map((option, index) => (
                     option && (
                       <MenuItem key={index} value={option}>
-                        <Typography variant="body2">
-                          Option {String.fromCharCode(65 + index)}:&nbsp;
-                          <span dangerouslySetInnerHTML={{ __html: option }} />
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, color: 'primary.main' }}>
+                            {String.fromCharCode(65 + index)}:
+                          </Typography>
+                          <MathRenderer 
+                            content={option} 
+                            variant="text"
+                            sx={{ 
+                              maxWidth: '300px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                          />
+                        </Box>
                       </MenuItem>
                     )
                   ))}

@@ -21,10 +21,11 @@ import {
   Divider,
   CircularProgress,
 } from "@mui/material";
-import { NavigateNext as NextIcon, NavigateBefore as PrevIcon, Flag as FlagIcon } from "@mui/icons-material";
+import { NavigateNext as NextIcon, NavigateBefore as PrevIcon, Flag as FlagIcon, CheckCircle as CheckIcon } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { performanceMonitor } from "../../utils/performance";
+import MathRenderer from "../../components/MathRenderer";
 
 interface Question {
   _id: string;
@@ -428,18 +429,14 @@ const ExamPage = () => {
               <Box sx={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto', pr: 1 }}>
                 <FormControl component="fieldset" sx={{ width: "100%" }}>
                   <FormLabel component="legend">
-                    <Typography 
-                      variant="h6" 
-                      gutterBottom
+                    <MathRenderer
+                      content={currentQuestion.question}
+                      variant="question"
                       sx={{ 
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word',
                         maxWidth: '100%',
                         pr: 2
                       }}
-                    >
-                      {currentQuestion.question.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")}
-                    </Typography>
+                    />
                   </FormLabel>
                   <RadioGroup 
                     value={examState.answers[currentQuestion._id] || ""} 
@@ -453,24 +450,19 @@ const ExamPage = () => {
                         control={<Radio />} 
                         label={
                           <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-                            <Typography variant="body1" sx={{ fontWeight: 'bold', mr: 1, minWidth: '20px' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold', mr: 1, minWidth: '25px', color: 'primary.main' }}>
                               {String.fromCharCode(65 + index)}.
                             </Typography>
-                            <Typography 
-                              variant="body1"
-                              sx={{ 
-                                wordBreak: 'break-word',
-                                overflowWrap: 'break-word',
-                                flex: 1
-                              }}
-                            >
-                              {option.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")}
-                            </Typography>
+                            <MathRenderer
+                              content={option}
+                              variant="option"
+                              sx={{ flex: 1 }}
+                            />
                           </Box>
                         }
                         sx={{
                           alignItems: 'flex-start',
-                          marginBottom: 1,
+                          marginBottom: 1.5,
                           '& .MuiRadio-root': {
                             alignSelf: 'flex-start',
                             marginTop: '2px'
@@ -481,21 +473,44 @@ const ExamPage = () => {
                   </RadioGroup>
                 </FormControl>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
-                  <Button startIcon={<PrevIcon />} onClick={() => handleNavigate("prev")} disabled={examState.currentQuestionIndex === 0}>
+                  <Button 
+                    startIcon={<PrevIcon />} 
+                    onClick={() => handleNavigate("prev")} 
+                    disabled={examState.currentQuestionIndex === 0}
+                    variant="outlined"
+                    sx={{ minWidth: '120px' }}
+                  >
                     Previous
                   </Button>
                   {examState.currentQuestionIndex === examState.questions.length - 1 ? (
                     <Button 
-                      startIcon={<FlagIcon />} 
+                      startIcon={isSubmitting ? <CircularProgress size={16} /> : <CheckIcon />} 
                       variant="contained" 
-                      color="primary" 
+                      color="success"
+                      size="large"
                       onClick={() => setShowConfirmSubmit(true)}
                       disabled={isSubmitting}
+                      sx={{ 
+                        minWidth: '150px',
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        boxShadow: 3,
+                        '&:hover': {
+                          boxShadow: 6,
+                          transform: 'translateY(-1px)'
+                        },
+                        transition: 'all 0.2s ease-in-out'
+                      }}
                     >
-                      Submit Exam
+                      {isSubmitting ? 'Submitting...' : 'Submit Exam'}
                     </Button>
                   ) : (
-                    <Button endIcon={<NextIcon />} onClick={() => handleNavigate("next")} variant="contained">
+                    <Button 
+                      endIcon={<NextIcon />} 
+                      onClick={() => handleNavigate("next")} 
+                      variant="contained"
+                      sx={{ minWidth: '120px' }}
+                    >
                       Next
                     </Button>
                   )}
