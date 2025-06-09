@@ -39,6 +39,7 @@ import {
   CloudUpload as CloudUploadIcon,
   FileUpload as FileUploadIcon,
   Settings as SettingsIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import axios from '../../config/axios';
 import { useNavigate } from 'react-router-dom';
@@ -47,6 +48,7 @@ import 'react-quill/dist/quill.snow.css';
 import 'katex/dist/katex.min.css';
 import './QuestionEditor.css';
 import MathRenderer from '../../components/MathRenderer';
+import ExamPreview from '../../components/ExamPreview';
 
 interface Question {
   _id: string;
@@ -156,6 +158,9 @@ const QuestionManagement = () => {
   const quillRef = useRef<ReactQuill>(null);
   const [currentEditor, setCurrentEditor] = useState<string>('question');
   const [currentOptionIndex, setCurrentOptionIndex] = useState<number>(-1);
+  const [previewTab, setPreviewTab] = useState<number>(0);
+  const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
 
   useEffect(() => {
     // Initial fetch of questions 
@@ -252,6 +257,17 @@ const QuestionManagement = () => {
   const handleClose = () => {
     setOpen(false);
     setError('');
+    setPreviewTab(0); // Reset preview tab
+  };
+
+  const handlePreviewQuestion = (question: Question) => {
+    setPreviewQuestion(question);
+    setShowPreviewDialog(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreviewDialog(false);
+    setPreviewQuestion(null);
   };
 
   const handleUploadOpen = () => {
@@ -647,6 +663,15 @@ const QuestionManagement = () => {
                     <TableCell>{question.marks}</TableCell>
                     <TableCell>
                       <Button
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handlePreviewQuestion(question)}
+                        sx={{ mr: 1 }}
+                        size="small"
+                        variant="outlined"
+                      >
+                        Preview
+                      </Button>
+                      <Button
                         startIcon={<EditIcon />}
                         onClick={() => handleOpen(question)}
                         sx={{ mr: 1 }}
@@ -710,6 +735,15 @@ const QuestionManagement = () => {
                     <TableCell>{question.subject}</TableCell>
                     <TableCell>{question.marks}</TableCell>
                     <TableCell>
+                      <Button
+                        startIcon={<VisibilityIcon />}
+                        onClick={() => handlePreviewQuestion(question)}
+                        sx={{ mr: 1 }}
+                        size="small"
+                        variant="outlined"
+                      >
+                        Preview
+                      </Button>
                       <Button
                         startIcon={<EditIcon />}
                         onClick={() => handleOpen(question)}
@@ -953,52 +987,82 @@ const QuestionManagement = () => {
 
           {/* Preview Section */}
           {(formData.question || formData.options.some(opt => opt)) && (
-            <Box sx={{ mt: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-              <Typography variant="h6" gutterBottom color="primary">
-                Question Preview
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
+            <Box sx={{ mt: 3 }}>
+              <Tabs
+                value={previewTab}
+                onChange={(e, newValue) => setPreviewTab(newValue)}
+                sx={{ mb: 2 }}
+              >
+                <Tab label="Quick Preview" />
+                <Tab label="Exam Preview" />
+              </Tabs>
               
-              {formData.question && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Question:
+              {previewTab === 0 ? (
+                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Quick Preview
                   </Typography>
-                  <MathRenderer 
-                    content={formData.question} 
-                    variant="question"
-                    sx={{ 
-                      p: 1, 
-                      backgroundColor: 'grey.50',
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'grey.300'
-                    }}
-                  />
+                  <Divider sx={{ mb: 2 }} />
+                  
+                  {formData.question && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Question:
+                      </Typography>
+                      <MathRenderer 
+                        content={formData.question} 
+                        variant="question"
+                        sx={{ 
+                          p: 1, 
+                          backgroundColor: 'grey.50',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'grey.300'
+                        }}
+                      />
+                    </Box>
+                  )}
+                  
+                  {formData.options.some(opt => opt) && (
+                    <Box>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Options:
+                      </Typography>
+                      <Box sx={{ pl: 2 }}>
+                        {formData.options.map((option, index) => (
+                          option && (
+                            <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, minWidth: '25px', color: 'primary.main' }}>
+                                {String.fromCharCode(65 + index)}.
+                              </Typography>
+                              <MathRenderer 
+                                content={option} 
+                                variant="option"
+                                sx={{ flex: 1 }}
+                              />
+                            </Box>
+                          )
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
-              )}
-              
-              {formData.options.some(opt => opt) && (
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Options:
+              ) : (
+                <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Exam Preview
                   </Typography>
-                  <Box sx={{ pl: 2 }}>
-                    {formData.options.map((option, index) => (
-                      option && (
-                        <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold', mr: 1, minWidth: '25px', color: 'primary.main' }}>
-                            {String.fromCharCode(65 + index)}.
-                          </Typography>
-                          <MathRenderer 
-                            content={option} 
-                            variant="option"
-                            sx={{ flex: 1 }}
-                          />
-                        </Box>
-                      )
-                    ))}
-                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    This is exactly how your question will appear in the actual exam
+                  </Typography>
+                  <ExamPreview
+                    question={formData.question}
+                    options={formData.options}
+                    subject={formData.subject || 'Sample Subject'}
+                    marks={formData.marks}
+                    questionNumber={1}
+                    totalQuestions={100}
+                  />
                 </Box>
               )}
             </Box>
@@ -1151,9 +1215,39 @@ const QuestionManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog 
+        open={showPreviewDialog} 
+        onClose={handleClosePreview} 
+        maxWidth="lg" 
+        fullWidth
+      >
+        <DialogTitle>
+          Question Preview
+          <Typography variant="subtitle2" color="text.secondary">
+            This is how the question will appear in the actual exam
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {previewQuestion && (
+            <ExamPreview
+              question={previewQuestion.question}
+              options={previewQuestion.options}
+              subject={previewQuestion.subject}
+              marks={previewQuestion.marks}
+              questionNumber={1}
+              totalQuestions={100}
+              onClose={handleClosePreview}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 };
+
+
 
 export default QuestionManagement; 
 
