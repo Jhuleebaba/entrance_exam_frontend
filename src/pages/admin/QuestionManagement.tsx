@@ -64,56 +64,27 @@ interface SubjectQuestions {
   questions: Question[];
 }
 
-// Custom Quill modules configuration
+// Simplified Quill modules configuration for better performance
 const quillModules = {
   toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
+    ['bold', 'italic', 'underline'],
     [{ 'script': 'sub'}, { 'script': 'super' }],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    [{ 'color': [] }, { 'background': [] }],
-    ['blockquote', 'code-block'],
-    ['clean'],
-    ['formula'], // Math formula button
+    ['clean']
   ],
   clipboard: {
-    // Keep pasted content as clean as possible
     matchVisual: false,
-  },
-  keyboard: {
-    bindings: {
-      // Custom key bindings for better control
-      'list autofill': {
-        key: ' ',
-        collapsed: true,
-        format: ['list'],
-        prefix: /^(1\.|-)$/,
-        handler: function(range: any, context: any) {
-          // Handle auto-formatting for lists
-          return true;
-        }
-      }
-    }
   }
 };
 
 const quillFormats = [
-  'header',
-  'bold', 'italic', 'underline', 'strike',
-  'script',
-  'list', 'bullet',
-  'color', 'background',
-  'blockquote', 'code-block',
-  'formula',
+  'bold', 'italic', 'underline',
+  'script'
 ];
 
 const optionQuillModules = {
   toolbar: [
-    ['bold', 'italic', 'underline'],
-    [{ 'script': 'sub'}, { 'script': 'super' }],
-    [{ 'color': [] }],
-    ['code'],
-    ['formula'],
+    ['bold', 'italic'],
+    [{ 'script': 'sub'}, { 'script': 'super' }]
   ],
   clipboard: {
     matchVisual: false,
@@ -121,9 +92,8 @@ const optionQuillModules = {
 };
 
 const optionQuillFormats = [
-  'bold', 'italic', 'underline',
-  'script', 'color', 'code',
-  'formula',
+  'bold', 'italic',
+  'script'
 ];
 
 const QuestionManagement = () => {
@@ -233,7 +203,7 @@ const QuestionManagement = () => {
     }
   };
 
-  const handleOpen = async (question?: Question) => {
+  const handleOpen = (question?: Question) => {
     console.log('handleOpen called with question:', question?._id);
     
     if (isOpeningDialog) {
@@ -242,36 +212,39 @@ const QuestionManagement = () => {
     }
     
     setIsOpeningDialog(true);
-    try {
-      if (question) {
-        console.log('Setting editing question:', question);
-        setEditingQuestion(question);
-        setFormData({
-          question: question.question,
-          options: question.options,
-          correctAnswer: question.correctAnswer,
-          subject: question.subject,
-          marks: question.marks,
-        });
-      } else {
-        console.log('Creating new question');
-        setEditingQuestion(null);
-        setFormData({
-          question: '',
-          options: ['', '', '', ''],
-          correctAnswer: '',
-          subject: activeSubject || subjects[0] || '',
-          marks: 1,
-        });
+    
+    // Use setTimeout to break the execution and prevent UI freeze
+    setTimeout(() => {
+      try {
+        if (question) {
+          console.log('Setting editing question:', question);
+          setEditingQuestion(question);
+          setFormData({
+            question: question.question,
+            options: question.options,
+            correctAnswer: question.correctAnswer,
+            subject: question.subject,
+            marks: question.marks,
+          });
+        } else {
+          console.log('Creating new question');
+          setEditingQuestion(null);
+          setFormData({
+            question: '',
+            options: ['', '', '', ''],
+            correctAnswer: '',
+            subject: activeSubject || subjects[0] || '',
+            marks: 1,
+          });
+        }
+        setOpen(true);
+        console.log('Dialog should be open now');
+      } catch (error) {
+        console.error('Error in handleOpen:', error);
+      } finally {
+        setIsOpeningDialog(false);
       }
-      setOpen(true);
-      console.log('Dialog should be open now');
-    } catch (error) {
-      console.error('Error in handleOpen:', error);
-    } finally {
-      // Add a small delay to prevent rapid clicking
-      setTimeout(() => setIsOpeningDialog(false), 500);
-    }
+    }, 10);
   };
 
   const handleClose = () => {
@@ -425,7 +398,30 @@ const QuestionManagement = () => {
       return;
     }
     
+    // Basic validation
+    if (!formData.question.trim()) {
+      setError('Question is required');
+      return;
+    }
+    
+    if (formData.options.filter(option => option.trim()).length < 2) {
+      setError('At least 2 options are required');
+      return;
+    }
+    
+    if (!formData.correctAnswer.trim()) {
+      setError('Correct answer is required');
+      return;
+    }
+    
+    if (!formData.subject.trim()) {
+      setError('Subject is required');
+      return;
+    }
+    
     setIsSubmitting(true);
+    setError(''); // Clear any previous errors
+    
     try {
       const token = localStorage.getItem('token');
       
@@ -438,51 +434,34 @@ const QuestionManagement = () => {
       
       console.log('Cleaned form data:', cleanedFormData);
       
+      let response;
       if (editingQuestion) {
-        await axios.put(`/api/questions/${editingQuestion._id}`, cleanedFormData, {
+        response = await axios.put(`/api/questions/${editingQuestion._id}`, cleanedFormData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess('Question updated successfully');
       } else {
-        await axios.post('/api/questions', cleanedFormData, {
+        response = await axios.post('/api/questions', cleanedFormData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess('Question added successfully');
       }
-      // Update both questions and questionsBySubject
-      await fetchQuestions();
       
-      // If we have an active subject, refresh that subject's questions too
-      if (activeSubject) {
-        try {
-          const response = await axios.get(`/api/questions?subject=${activeSubject}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          if (response.data.success) {
-            setQuestions(response.data.questions.filter(
-              (q: Question) => q.subject === activeSubject
-            ));
-          }
-        } catch (error) {
-          console.error("Error refreshing questions by subject:", error);
-        }
-      }
+      console.log('API response:', response.data);
       
-      // Also fetch questions by subject to update the subject cards
-      try {
-        const subjectResponse = await axios.get('/api/questions/by-subject', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (subjectResponse.data.success) {
-          setQuestionsBySubject(subjectResponse.data.questionsBySubject);
-        }
-      } catch (error) {
-        console.error("Error refreshing questions by subject:", error);
-      }
-      
+      // Close dialog first
       handleClose();
+      
+      // Then refresh data in background
+      setTimeout(async () => {
+        try {
+          await fetchQuestions();
+          await fetchQuestionsBySubject();
+        } catch (refreshError) {
+          console.error('Error refreshing data:', refreshError);
+        }
+      }, 100);
+      
     } catch (error: any) {
       console.error('Error in handleSubmit:', error);
       setError(error.response?.data?.message || 'Error saving question');
@@ -784,56 +763,7 @@ const QuestionManagement = () => {
 
 
 
-  // Function to insert special characters into the editor
-  const insertSymbol = (symbol: string) => {
-    const editor = quillRef.current?.getEditor();
-    if (!editor) return;
-    
-    const range = editor.getSelection();
-    if (range) {
-      editor.insertText(range.index, symbol);
-      editor.setSelection({ index: range.index + symbol.length, length: 0 });
-    } else {
-      // If no selection, insert at the end
-      const length = editor.getLength();
-      editor.insertText(length - 1, symbol);
-      editor.setSelection({ index: length - 1 + symbol.length, length: 0 });
-    }
-  };
 
-  // Special symbols collection for mathematics
-  const mathSymbols = [
-    { symbol: '°', label: 'Degree' },
-    { symbol: '²', label: 'Squared' },
-    { symbol: '³', label: 'Cubed' },
-    { symbol: '√', label: 'Square Root' },
-    { symbol: '∛', label: 'Cube Root' },
-    { symbol: 'π', label: 'Pi' },
-    { symbol: '∑', label: 'Sum' },
-    { symbol: '∫', label: 'Integral' },
-    { symbol: '∞', label: 'Infinity' },
-    { symbol: '≈', label: 'Approximately' },
-    { symbol: '≠', label: 'Not Equal' },
-    { symbol: '≤', label: 'Less Than or Equal' },
-    { symbol: '≥', label: 'Greater Than or Equal' },
-    { symbol: '±', label: 'Plus Minus' },
-    { symbol: '×', label: 'Multiply' },
-    { symbol: '÷', label: 'Divide' },
-    { symbol: '∈', label: 'Element Of' },
-    { symbol: '∉', label: 'Not Element Of' },
-    { symbol: '∩', label: 'Intersection' },
-    { symbol: '∪', label: 'Union' },
-    { symbol: '⊂', label: 'Subset' },
-    { symbol: '⊃', label: 'Superset' },
-    { symbol: '∠', label: 'Angle' },
-    { symbol: '∥', label: 'Parallel' },
-    { symbol: '⊥', label: 'Perpendicular' },
-    { symbol: 'Δ', label: 'Delta' },
-    { symbol: 'θ', label: 'Theta' },
-    { symbol: 'λ', label: 'Lambda' },
-    { symbol: 'μ', label: 'Mu' },
-    { symbol: 'σ', label: 'Sigma' },
-  ];
 
   return (
     <Container maxWidth="lg">
@@ -903,7 +833,7 @@ const QuestionManagement = () => {
                 Quick Insert Symbols:
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {mathSymbols.slice(0, 15).map((item, index) => (
+                {[].map((item, index) => (
                   <Tooltip key={index} title={`${item.label} - Click to insert`}>
                     <Button
                       className="symbol-button"
@@ -955,7 +885,7 @@ const QuestionManagement = () => {
                     Quick Symbols:
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {mathSymbols.slice(0, 8).map((item, symbolIndex) => (
+                    {[].map((item, symbolIndex) => (
                       <Tooltip key={symbolIndex} title={`${item.label} - Click to insert`}>
                         <Button
                           className="symbol-button"
