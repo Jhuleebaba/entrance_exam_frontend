@@ -155,6 +155,8 @@ const QuestionManagement = () => {
     marks: 1,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOpeningDialog, setIsOpeningDialog] = useState(false);
   const quillRef = useRef<ReactQuill>(null);
   const [currentEditor, setCurrentEditor] = useState<string>('question');
   const [currentOptionIndex, setCurrentOptionIndex] = useState<number>(-1);
@@ -231,27 +233,45 @@ const QuestionManagement = () => {
     }
   };
 
-  const handleOpen = (question?: Question) => {
-    if (question) {
-      setEditingQuestion(question);
-      setFormData({
-        question: question.question,
-        options: question.options,
-        correctAnswer: question.correctAnswer,
-        subject: question.subject,
-        marks: question.marks,
-      });
-    } else {
-      setEditingQuestion(null);
-      setFormData({
-        question: '',
-        options: ['', '', '', ''],
-        correctAnswer: '',
-        subject: activeSubject || subjects[0] || '',
-        marks: 1,
-      });
+  const handleOpen = async (question?: Question) => {
+    console.log('handleOpen called with question:', question?._id);
+    
+    if (isOpeningDialog) {
+      console.log('Already opening dialog, ignoring...');
+      return;
     }
-    setOpen(true);
+    
+    setIsOpeningDialog(true);
+    try {
+      if (question) {
+        console.log('Setting editing question:', question);
+        setEditingQuestion(question);
+        setFormData({
+          question: question.question,
+          options: question.options,
+          correctAnswer: question.correctAnswer,
+          subject: question.subject,
+          marks: question.marks,
+        });
+      } else {
+        console.log('Creating new question');
+        setEditingQuestion(null);
+        setFormData({
+          question: '',
+          options: ['', '', '', ''],
+          correctAnswer: '',
+          subject: activeSubject || subjects[0] || '',
+          marks: 1,
+        });
+      }
+      setOpen(true);
+      console.log('Dialog should be open now');
+    } catch (error) {
+      console.error('Error in handleOpen:', error);
+    } finally {
+      // Add a small delay to prevent rapid clicking
+      setTimeout(() => setIsOpeningDialog(false), 500);
+    }
   };
 
   const handleClose = () => {
@@ -374,23 +394,38 @@ const QuestionManagement = () => {
   const cleanHtmlContent = (htmlContent: string): string => {
     if (!htmlContent) return '';
     
-    // Create a temporary div to parse HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    
-    // Get the text content and preserve some formatting
-    let cleaned = tempDiv.textContent || tempDiv.innerText || '';
-    
-    // Remove extra whitespace and clean up
-    cleaned = cleaned
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .replace(/\n+/g, '\n') // Replace multiple newlines with single newline
-      .trim();
-    
-    return cleaned;
+    try {
+      // Simple regex-based cleaning instead of DOM operations
+      let cleaned = htmlContent
+        // Remove HTML tags
+        .replace(/<[^>]*>/g, '')
+        // Clean up HTML entities
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        // Clean up whitespace
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      return cleaned;
+    } catch (error) {
+      console.error('Error cleaning HTML content:', error);
+      return htmlContent; // Return original if cleaning fails
+    }
   };
 
   const handleSubmit = async () => {
+    console.log('handleSubmit called, editingQuestion:', editingQuestion?._id);
+    
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring...');
+      return;
+    }
+    
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
       
@@ -400,6 +435,8 @@ const QuestionManagement = () => {
         question: cleanHtmlContent(formData.question),
         options: formData.options.map(option => cleanHtmlContent(option))
       };
+      
+      console.log('Cleaned form data:', cleanedFormData);
       
       if (editingQuestion) {
         await axios.put(`/api/questions/${editingQuestion._id}`, cleanedFormData, {
@@ -447,7 +484,10 @@ const QuestionManagement = () => {
       
       handleClose();
     } catch (error: any) {
+      console.error('Error in handleSubmit:', error);
       setError(error.response?.data?.message || 'Error saving question');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1105,8 +1145,17 @@ const QuestionManagement = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">
-            {editingQuestion ? 'Update' : 'Add'}
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            color="primary" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} />
+            ) : (
+              editingQuestion ? 'Update Question' : 'Add Question'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
