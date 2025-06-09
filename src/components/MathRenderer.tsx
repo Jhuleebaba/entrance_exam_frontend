@@ -71,12 +71,23 @@ const MathRenderer: React.FC<MathRendererProps> = ({
           .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
       }
       
-      // Clean up multiple consecutive paragraphs
+      // Enhanced HTML tag handling for existing content in database
+      // Convert old HTML tags to proper formatting (in case they exist)
       cleanContent = cleanContent
-        .replace(/<p><\/p>/g, '') // Remove empty paragraphs
-        .replace(/<p>\s*<\/p>/g, '') // Remove paragraphs with only whitespace
-        .replace(/(<\/p>\s*){2,}/g, '</p>') // Remove duplicate closing p tags
-        .replace(/(<p>\s*){2,}/g, '<p>'); // Remove duplicate opening p tags
+        .replace(/<b>/gi, '<strong>')
+        .replace(/<\/b>/gi, '</strong>')
+        .replace(/<i>/gi, '<em>')
+        .replace(/<\/i>/gi, '</em>')
+        .replace(/<br\s*\/?>/gi, '<br>')
+        .replace(/<p>/gi, '')
+        .replace(/<\/p>/gi, '<br>');
+      
+      // Clean up multiple consecutive paragraphs and breaks
+      cleanContent = cleanContent
+        .replace(/<br>\s*<br>\s*/g, '<br><br>') // Normalize double breaks
+        .replace(/(<br>\s*){3,}/g, '<br><br>') // Limit to max 2 consecutive breaks
+        .replace(/^\s*<br>\s*/g, '') // Remove leading breaks
+        .replace(/\s*<br>\s*$/g, ''); // Remove trailing breaks
       
       // Remove dangerous HTML tags but preserve safe formatting
       cleanContent = cleanContent.replace(/<script.*?<\/script>/gi, '');
@@ -87,7 +98,7 @@ const MathRenderer: React.FC<MathRendererProps> = ({
       return cleanContent;
     } catch (e) {
       console.warn('Error rendering math content:', e);
-      // Fallback to simple text cleaning but preserve basic formatting
+      // Enhanced fallback to clean and render basic formatting
       return content
         .replace(/<script.*?<\/script>/gi, '')
         .replace(/<style.*?<\/style>/gi, '')
@@ -98,7 +109,12 @@ const MathRenderer: React.FC<MathRendererProps> = ({
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'");
+        .replace(/&#39;/g, "'")
+        .replace(/<b>/gi, '<strong>')
+        .replace(/<\/b>/gi, '</strong>')
+        .replace(/<i>/gi, '<em>')
+        .replace(/<\/i>/gi, '</em>')
+        .replace(/<br\s*\/?>/gi, '<br>');
     }
   };
 
@@ -106,30 +122,90 @@ const MathRenderer: React.FC<MathRendererProps> = ({
     switch (variant) {
       case 'question':
         return {
-          fontSize: '1.2rem',
+          fontSize: '1.3rem',
           fontWeight: 'bold',
           mb: 2,
+          lineHeight: 1.6,
+          color: 'text.primary',
           '& .katex': {
-            fontSize: '1.3rem'
+            fontSize: '1.4rem'
           },
           '& .katex-display': {
-            margin: '0.8em 0'
+            margin: '1em 0'
+          },
+          '& strong': {
+            fontWeight: 'bold'
+          },
+          '& em': {
+            fontStyle: 'italic'
+          },
+          '& u': {
+            textDecoration: 'underline'
+          },
+          '& sup': {
+            fontSize: '0.8em',
+            verticalAlign: 'super',
+            lineHeight: 0
+          },
+          '& sub': {
+            fontSize: '0.8em',
+            verticalAlign: 'sub',
+            lineHeight: 0
           }
         };
       case 'option':
         return {
-          fontSize: '1rem',
+          fontSize: '1.1rem',
+          lineHeight: 1.5,
           '& .katex': {
-            fontSize: '1rem'
+            fontSize: '1.1rem'
           },
           '& .katex-display': {
-            margin: '0.4em 0'
+            margin: '0.5em 0'
+          },
+          '& strong': {
+            fontWeight: 'bold'
+          },
+          '& em': {
+            fontStyle: 'italic'
+          },
+          '& u': {
+            textDecoration: 'underline'
+          },
+          '& sup': {
+            fontSize: '0.8em',
+            verticalAlign: 'super',
+            lineHeight: 0
+          },
+          '& sub': {
+            fontSize: '0.8em',
+            verticalAlign: 'sub',
+            lineHeight: 0
           }
         };
       default:
         return {
           '& .katex': {
             fontSize: 'inherit'
+          },
+          '& strong': {
+            fontWeight: 'bold'
+          },
+          '& em': {
+            fontStyle: 'italic'
+          },
+          '& u': {
+            textDecoration: 'underline'
+          },
+          '& sup': {
+            fontSize: '0.8em',
+            verticalAlign: 'super',
+            lineHeight: 0
+          },
+          '& sub': {
+            fontSize: '0.8em',
+            verticalAlign: 'sub',
+            lineHeight: 0
           }
         };
     }
@@ -142,6 +218,7 @@ const MathRenderer: React.FC<MathRendererProps> = ({
       sx={{
         wordBreak: 'break-word',
         overflowWrap: 'break-word',
+        whiteSpace: 'pre-line',
         ...getVariantStyles(),
         ...sx
       }}

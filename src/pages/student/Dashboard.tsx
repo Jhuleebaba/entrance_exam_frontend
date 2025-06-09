@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import {
   PlayArrow as StartIcon,
@@ -40,9 +41,13 @@ const StudentDashboard = () => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [examInstructions, setExamInstructions] = useState<string>('');
+  const [isStartingExam, setIsStartingExam] = useState(false);
+  const [isResettingExam, setIsResettingExam] = useState(false);
+  const [isLoadingExamStatus, setIsLoadingExamStatus] = useState(true);
 
   const fetchExamStatus = async () => {
     try {
+      setIsLoadingExamStatus(true);
       const token = localStorage.getItem('token');
       const response = await axios.get('/api/exam-results', {
         headers: { Authorization: `Bearer ${token}` },
@@ -55,6 +60,8 @@ const StudentDashboard = () => {
     } catch (error: any) {
       console.error('Error fetching exam status:', error);
       setError(error.response?.data?.message || 'Error checking exam status');
+    } finally {
+      setIsLoadingExamStatus(false);
     }
   };
 
@@ -81,6 +88,8 @@ const StudentDashboard = () => {
 
   const handleStartExam = async () => {
     try {
+      setIsStartingExam(true);
+      setError('');
       const token = localStorage.getItem('token');
       const response = await axios.post(
         '/api/exam-results/start',
@@ -97,11 +106,15 @@ const StudentDashboard = () => {
     } catch (error: any) {
       console.error('Error starting exam:', error);
       setError(error.response?.data?.message || 'Failed to start exam');
+    } finally {
+      setIsStartingExam(false);
     }
   };
 
   const handleResetExam = async () => {
     try {
+      setIsResettingExam(true);
+      setError('');
       const token = localStorage.getItem('token');
       const response = await axios.post(
         '/api/exam-results/reset',
@@ -119,6 +132,8 @@ const StudentDashboard = () => {
     } catch (error: any) {
       console.error('Error resetting exam:', error);
       setError(error.response?.data?.message || 'Failed to reset exam status');
+    } finally {
+      setIsResettingExam(false);
     }
   };
 
@@ -196,13 +211,14 @@ const StudentDashboard = () => {
               </CardContent>
               <CardActions sx={{ justifyContent: 'space-between' }}>
                 <Button
-                  startIcon={<StartIcon />}
+                  startIcon={isStartingExam ? <CircularProgress size={20} /> : <StartIcon />}
                   variant="contained"
                   color="primary"
                   onClick={handleStartExam}
-                  disabled={hasActiveExam}
+                  disabled={hasActiveExam || isStartingExam || isLoadingExamStatus}
+                  size="large"
                 >
-                  {hasActiveExam ? 'Exam in Progress' : 'Start Exam'}
+                  {isStartingExam ? 'Starting...' : hasActiveExam ? 'Exam in Progress' : 'Start Exam'}
                 </Button>
                 {hasActiveExam && (
                   <Button
@@ -210,6 +226,7 @@ const StudentDashboard = () => {
                     variant="outlined"
                     color="warning"
                     onClick={() => setShowResetConfirm(true)}
+                    disabled={isLoadingExamStatus}
                   >
                     Reset Exam Status
                   </Button>
@@ -277,9 +294,17 @@ const StudentDashboard = () => {
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowResetConfirm(false)}>Cancel</Button>
-            <Button onClick={handleResetExam} variant="contained" color="warning">
-              Reset Status
+            <Button onClick={() => setShowResetConfirm(false)} disabled={isResettingExam}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleResetExam} 
+              variant="contained" 
+              color="warning"
+              disabled={isResettingExam}
+              startIcon={isResettingExam ? <CircularProgress size={20} /> : null}
+            >
+              {isResettingExam ? 'Resetting...' : 'Reset Status'}
             </Button>
           </DialogActions>
         </Dialog>

@@ -70,6 +70,8 @@ const ExamPage = () => {
   const [showAutoSubmitDialog, setShowAutoSubmitDialog] = useState(false);
   const [questionStatus, setQuestionStatus] = useState<{ [key: string]: QuestionStatus }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const shuffleArray = (array: any[]) => {
     const shuffled = [...array];
@@ -130,6 +132,8 @@ const ExamPage = () => {
       const stopTimer = performanceMonitor.startTimer('Exam Data Loading');
       
       try {
+        setIsLoading(true);
+        setError("");
         const token = localStorage.getItem("token");
         
         if (!token) {
@@ -230,6 +234,7 @@ const ExamPage = () => {
           }
         }, 3000);
       } finally {
+        setIsLoading(false);
         stopTimer();
       }
     };
@@ -301,6 +306,7 @@ const ExamPage = () => {
   };
 
   const handleNavigate = (direction: "prev" | "next") => {
+    setIsNavigating(true);
     const currentQuestion = examState.questions[examState.currentQuestionIndex];
     if (!examState.answers[currentQuestion._id]) {
       setQuestionStatus((prev) => ({
@@ -319,14 +325,19 @@ const ExamPage = () => {
         currentSubject: prev.questions[newIndex]?.subject || prev.currentSubject,
       };
     });
+    // Reset navigation loading after a short delay
+    setTimeout(() => setIsNavigating(false), 100);
   };
 
   const handleJumpToQuestion = (index: number) => {
+    setIsNavigating(true);
     setExamState((prev) => ({
       ...prev,
       currentQuestionIndex: index,
       currentSubject: prev.questions[index].subject,
     }));
+    // Reset navigation loading after a short delay
+    setTimeout(() => setIsNavigating(false), 100);
   };
 
   const handleCancelExam = async () => {
@@ -384,15 +395,19 @@ const ExamPage = () => {
   const currentQuestion = examState.questions[examState.currentQuestionIndex];
   const progress = (examState.currentQuestionIndex / examState.questions.length) * 100;
 
-  if (!currentQuestion) {
+  if (isLoading || !currentQuestion) {
     return (
       <Container maxWidth="md">
-        <Box sx={{ mt: 4, mb: 4 }}>
-          <Typography variant="h6" gutterBottom>
-            Loading exam questions...
+        <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CircularProgress size={60} sx={{ mb: 3 }} />
+          <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+            {isLoading ? 'Loading your exam...' : 'Preparing questions...'}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
+            Please wait while we set up your examination environment
           </Typography>
           {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
+            <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
               {error}
             </Alert>
           )}
@@ -402,7 +417,7 @@ const ExamPage = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <Box sx={{ mt: 4, mb: 4 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -410,115 +425,137 @@ const ExamPage = () => {
           </Alert>
         )}
         <Grid container spacing={3}>
-          <Grid item xs={12} lg={8}>
-            <Paper sx={{ p: 3, maxWidth: '100%', overflow: 'hidden', minHeight: '400px' }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Grid item xs={12} lg={9}>
+            <Paper sx={{ p: 4, maxWidth: '100%', overflow: 'hidden', minHeight: '600px' }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                 <Box>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
                     {examState.currentSubject}
                   </Typography>
-                  <Typography variant="subtitle1">
+                  <Typography variant="h6" sx={{ color: 'text.secondary' }}>
                     Question {examState.currentQuestionIndex + 1} of {examState.questions.length}
                   </Typography>
                 </Box>
-                <Typography variant="h6" color={examState.timeLeft < 300 ? "error" : "inherit"}>
+                <Typography variant="h5" color={examState.timeLeft < 300 ? "error" : "primary"} sx={{ fontWeight: 'bold' }}>
                   Time Left: {formatTime(examState.timeLeft)}
                 </Typography>
               </Box>
-              <LinearProgress variant="determinate" value={progress} sx={{ mb: 3 }} />
-              <Box sx={{ maxHeight: 'calc(100vh - 400px)', overflowY: 'auto', pr: 1 }}>
+              <LinearProgress variant="determinate" value={progress} sx={{ mb: 4, height: 8, borderRadius: 4 }} />
+              <Box sx={{ minHeight: '500px', pr: 1 }}>
                 <FormControl component="fieldset" sx={{ width: "100%" }}>
-                  <FormLabel component="legend">
+                  <FormLabel component="legend" sx={{ mb: 3 }}>
                     <MathRenderer
                       content={currentQuestion.question}
                       variant="question"
                       sx={{ 
                         maxWidth: '100%',
-                        pr: 2
+                        pr: 2,
+                        fontSize: '1.3rem',
+                        lineHeight: 1.6
                       }}
                     />
                   </FormLabel>
                   <RadioGroup 
                     value={examState.answers[currentQuestion._id] || ""} 
                     onChange={(e) => handleAnswerChange(e.target.value)}
-                    sx={{ mt: 2 }}
+                    sx={{ mt: 3 }}
                   >
                     {currentQuestion.options.map((option, index) => (
                       <FormControlLabel 
                         key={index} 
                         value={option} 
-                        control={<Radio />} 
+                        control={<Radio size="medium" />} 
                         label={
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-                            <Typography variant="body1" sx={{ fontWeight: 'bold', mr: 1, minWidth: '25px', color: 'primary.main' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%', py: 1 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold', mr: 2, minWidth: '30px', color: 'primary.main' }}>
                               {String.fromCharCode(65 + index)}.
                             </Typography>
                             <MathRenderer
                               content={option}
                               variant="option"
-                              sx={{ flex: 1 }}
+                              sx={{ 
+                                flex: 1,
+                                fontSize: '1.1rem',
+                                lineHeight: 1.5
+                              }}
                             />
                           </Box>
                         }
                         sx={{
                           alignItems: 'flex-start',
-                          marginBottom: 1.5,
+                          marginBottom: 2,
+                          padding: 1.5,
+                          border: '1px solid',
+                          borderColor: 'grey.300',
+                          borderRadius: 2,
+                          '&:hover': {
+                            backgroundColor: 'grey.50',
+                            borderColor: 'primary.main'
+                          },
+                          '&.Mui-checked': {
+                            backgroundColor: 'primary.50',
+                            borderColor: 'primary.main'
+                          },
                           '& .MuiRadio-root': {
                             alignSelf: 'flex-start',
-                            marginTop: '2px'
+                            marginTop: '4px'
                           }
                         }}
                       />
                     ))}
                   </RadioGroup>
                 </FormControl>
-                <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'grey.300' }}>
                   <Button 
-                    startIcon={<PrevIcon />} 
+                    startIcon={isNavigating ? <CircularProgress size={20} /> : <PrevIcon />} 
                     onClick={() => handleNavigate("prev")} 
-                    disabled={examState.currentQuestionIndex === 0}
+                    disabled={examState.currentQuestionIndex === 0 || isNavigating}
                     variant="outlined"
-                    sx={{ minWidth: '120px' }}
+                    size="large"
+                    sx={{ minWidth: '140px', height: '48px' }}
                   >
-                    Previous
+                    {isNavigating ? 'Loading...' : 'Previous'}
                   </Button>
                   {examState.currentQuestionIndex === examState.questions.length - 1 ? (
                     <Button 
-                      startIcon={isSubmitting ? <CircularProgress size={16} /> : <CheckIcon />} 
+                      startIcon={isSubmitting ? <CircularProgress size={20} /> : <CheckIcon />} 
                       variant="contained" 
                       color="success"
                       size="large"
                       onClick={() => setShowConfirmSubmit(true)}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isNavigating}
                       sx={{ 
-                        minWidth: '150px',
-                        fontSize: '1.1rem',
+                        minWidth: '180px',
+                        height: '56px',
+                        fontSize: '1.2rem',
                         fontWeight: 'bold',
-                        boxShadow: 3,
+                        boxShadow: 4,
                         '&:hover': {
-                          boxShadow: 6,
-                          transform: 'translateY(-1px)'
+                          boxShadow: 8,
+                          transform: 'translateY(-2px)'
                         },
-                        transition: 'all 0.2s ease-in-out'
+                        transition: 'all 0.3s ease-in-out'
                       }}
                     >
                       {isSubmitting ? 'Submitting...' : 'Submit Exam'}
                     </Button>
                   ) : (
                     <Button 
-                      endIcon={<NextIcon />} 
+                      endIcon={isNavigating ? <CircularProgress size={20} /> : <NextIcon />} 
                       onClick={() => handleNavigate("next")} 
                       variant="contained"
-                      sx={{ minWidth: '120px' }}
+                      size="large"
+                      disabled={isNavigating}
+                      sx={{ minWidth: '140px', height: '48px' }}
                     >
-                      Next
+                      {isNavigating ? 'Loading...' : 'Next'}
                     </Button>
                   )}
                 </Box>
               </Box>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} lg={3}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 Question Navigation
