@@ -447,18 +447,17 @@ const QuestionManagement = () => {
       
       console.log('API response:', response.data);
       
-      // Close dialog first
-      handleClose();
+      // Refresh data first, then close dialog
+      await fetchQuestions();
+      await fetchQuestionsBySubject();
       
-      // Then refresh data in background
-      setTimeout(async () => {
-        try {
-          await fetchQuestions();
-          await fetchQuestionsBySubject();
-        } catch (refreshError) {
-          console.error('Error refreshing data:', refreshError);
-        }
-      }, 100);
+      // Update the local state immediately for the active subject
+      if (activeSubject) {
+        await fetchQuestionsForSubject(activeSubject);
+      }
+      
+      // Close dialog after data is refreshed
+      handleClose();
       
     } catch (error: any) {
       console.error('Error in handleSubmit:', error);
