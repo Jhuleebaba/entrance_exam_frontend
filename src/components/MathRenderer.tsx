@@ -29,16 +29,9 @@ const MathRenderer: React.FC<MathRendererProps> = ({
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
       
-      // Handle line breaks and paragraphs better
-      if (!cleanContent.includes('<p>') && !cleanContent.includes('<div>')) {
-        // Only apply paragraph formatting if content doesn't already have block elements
-        cleanContent = cleanContent
-          .replace(/\n\n/g, '</p><p>') // Convert double line breaks to paragraphs
-          .replace(/\n/g, '<br>') // Convert single line breaks to br tags
-          .replace(/^(?!<p>)/, '<p>') // Add opening p tag if not present
-          .replace(/(?<!<\/p>)$/, '</p>'); // Add closing p tag if not present
-      } else {
-        // Just convert line breaks to br tags for existing HTML content
+      // Handle line breaks properly - convert newlines to <br> tags for simple text
+      if (!cleanContent.includes('<') && !cleanContent.includes('>')) {
+        // Plain text - just convert line breaks
         cleanContent = cleanContent.replace(/\n/g, '<br>');
       }
       
