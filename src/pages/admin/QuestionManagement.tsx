@@ -402,8 +402,9 @@ const QuestionManagement = () => {
       return;
     }
     
-    if (formData.options.filter(option => option.trim()).length < 2) {
-      setError('At least 2 options are required');
+    // Ensure we have exactly 4 options (backend requirement)
+    if (formData.options.filter(option => option.trim()).length < 4) {
+      setError('All 4 options are required');
       return;
     }
     
@@ -424,19 +425,35 @@ const QuestionManagement = () => {
       const token = localStorage.getItem('token');
       
       // Clean the content before sending to server
+      const cleanedOptions = formData.options.map(option => cleanHtmlContent(option));
       const cleanedFormData = {
         ...formData,
         question: cleanHtmlContent(formData.question),
-        options: formData.options.map(option => cleanHtmlContent(option))
+        options: cleanedOptions,
+        correctAnswer: cleanHtmlContent(formData.correctAnswer)
       };
       
+      // Validate that cleaned correct answer is still one of the cleaned options
+      if (!cleanedOptions.includes(cleanedFormData.correctAnswer)) {
+        console.error('Validation error: Correct answer not found in cleaned options');
+        console.error('Cleaned correct answer:', cleanedFormData.correctAnswer);
+        console.error('Cleaned options:', cleanedOptions);
+        setError('Correct answer must be one of the provided options');
+        return;
+      }
+      
       console.log('Cleaned form data:', cleanedFormData);
+      console.log('Original form data:', formData);
+      console.log('Editing question ID:', editingQuestion?._id);
+      console.log('Request URL:', `/api/questions/${editingQuestion?._id}`);
       
       let response;
       if (editingQuestion) {
+        console.log('Making PUT request to update question...');
         response = await axios.put(`/api/questions/${editingQuestion._id}`, cleanedFormData, {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log('PUT response received:', response.data);
         setSuccess('Question updated successfully');
       } else {
         response = await axios.post('/api/questions', cleanedFormData, {
@@ -461,6 +478,12 @@ const QuestionManagement = () => {
       
     } catch (error: any) {
       console.error('Error in handleSubmit:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.response?.data?.message,
+        fullError: error
+      });
       setError(error.response?.data?.message || 'Error saving question');
     } finally {
       setIsSubmitting(false);
