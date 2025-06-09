@@ -290,7 +290,6 @@ const QuestionManagement = () => {
 
   const navigateToSettings = () => {
     navigate('/admin/settings');
-    window.addEventListener('focus', refreshSettings);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
