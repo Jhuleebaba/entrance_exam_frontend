@@ -29,11 +29,8 @@ const MathRenderer: React.FC<MathRendererProps> = ({
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
       
-      // Handle line breaks properly - convert newlines to <br> tags for simple text
-      if (!cleanContent.includes('<') && !cleanContent.includes('>')) {
-        // Plain text - just convert line breaks
-        cleanContent = cleanContent.replace(/\n/g, '<br>');
-      }
+      // Handle line breaks properly - convert newlines to <br> tags
+      cleanContent = cleanContent.replace(/\n/g, '<br>');
       
       // Handle KaTeX formulas (both inline and display)
       // Display math: $$formula$$
@@ -64,12 +61,15 @@ const MathRenderer: React.FC<MathRendererProps> = ({
         }
       });
       
-      // Handle common mathematical symbols and formatting (only if not already in HTML tags)
-      cleanContent = cleanContent
-        .replace(/(?<!<[^>]*)\^(\d+)(?![^<]*>)/g, '<sup>$1</sup>') // Superscript numbers
-        .replace(/(?<!<[^>]*)_(\d+)(?![^<]*>)/g, '<sub>$1</sub>') // Subscript numbers
-        .replace(/(?<!<[^>]*)\*\*(.*?)\*\*(?![^<]*>)/g, '<strong>$1</strong>') // Bold
-        .replace(/(?<!<[^>]*)\*(.*?)\*(?![^<]*>)/g, '<em>$1</em>'); // Italic
+      // Handle common mathematical symbols and formatting (avoid conflicts with existing HTML)
+      // Only apply these patterns to text that doesn't already contain HTML tags
+      if (!cleanContent.includes('<strong>') && !cleanContent.includes('<em>') && !cleanContent.includes('<u>')) {
+        cleanContent = cleanContent
+          .replace(/\^(\d+)/g, '<sup>$1</sup>') // Superscript numbers
+          .replace(/_(\d+)/g, '<sub>$1</sub>') // Subscript numbers
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+          .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+      }
       
       // Clean up multiple consecutive paragraphs
       cleanContent = cleanContent
@@ -138,6 +138,7 @@ const MathRenderer: React.FC<MathRendererProps> = ({
   return (
     <Box
       component={component}
+      className="MathRenderer-root"
       sx={{
         wordBreak: 'break-word',
         overflowWrap: 'break-word',

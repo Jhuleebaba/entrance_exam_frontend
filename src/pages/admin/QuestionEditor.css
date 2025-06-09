@@ -3,6 +3,7 @@
   min-height: 120px;
   font-size: 16px;
   line-height: 1.5;
+  white-space: pre-wrap; /* Preserve line breaks and spaces */
 }
 
 /* Improve paragraph spacing in the editor */
@@ -16,6 +17,28 @@
 
 .ql-editor p:last-child {
   margin-bottom: 0;
+}
+
+/* Handle line breaks properly */
+.ql-editor br {
+  display: block;
+  margin: 0.5em 0;
+  content: "";
+}
+
+/* Ensure formatting is preserved and visible */
+.ql-editor strong,
+.ql-editor b {
+  font-weight: bold;
+}
+
+.ql-editor em,
+.ql-editor i {
+  font-style: italic;
+}
+
+.ql-editor u {
+  text-decoration: underline;
 }
 
 /* Ensure superscript and subscript work properly */
@@ -32,6 +55,17 @@
 
 .ql-editor sub {
   bottom: -0.2em;
+}
+
+/* List styling */
+.ql-editor ol,
+.ql-editor ul {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.ql-editor li {
+  margin: 0.2em 0;
 }
 
 .ql-container {
@@ -57,6 +91,39 @@
 /* Make sure formulas display correctly */
 .katex-display {
   margin: 0.5em 0;
+}
+
+/* MathRenderer formatting preservation */
+.MathRenderer-root {
+  white-space: pre-line; /* Preserve line breaks */
+}
+
+.MathRenderer-root br {
+  display: block;
+  margin: 0.3em 0;
+  content: "";
+}
+
+.MathRenderer-root strong {
+  font-weight: bold;
+}
+
+.MathRenderer-root em {
+  font-style: italic;
+}
+
+.MathRenderer-root u {
+  text-decoration: underline;
+}
+
+.MathRenderer-root sup {
+  font-size: 0.8em;
+  vertical-align: super;
+}
+
+.MathRenderer-root sub {
+  font-size: 0.8em;
+  vertical-align: sub;
 }
 
 /* Ensure quill editor respects dark mode if implemented */

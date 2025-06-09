@@ -62,10 +62,11 @@ interface SubjectQuestions {
   questions: Question[];
 }
 
-// Simplified Quill modules configuration for better performance
+// Enhanced Quill modules configuration with proper formatting tools
 const quillModules = {
   toolbar: [
     ['bold', 'italic', 'underline'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
     [{ 'script': 'sub'}, { 'script': 'super' }],
     ['clean']
   ],
@@ -76,12 +77,13 @@ const quillModules = {
 
 const quillFormats = [
   'bold', 'italic', 'underline',
+  'list', 'bullet',
   'script'
 ];
 
 const optionQuillModules = {
   toolbar: [
-    ['bold', 'italic'],
+    ['bold', 'italic', 'underline'],
     [{ 'script': 'sub'}, { 'script': 'super' }]
   ],
   clipboard: {
@@ -90,7 +92,7 @@ const optionQuillModules = {
 };
 
 const optionQuillFormats = [
-  'bold', 'italic',
+  'bold', 'italic', 'underline',
   'script'
 ];
 
@@ -366,19 +368,53 @@ const QuestionManagement = () => {
     if (!htmlContent) return '';
     
     try {
-      // Simple regex-based cleaning instead of DOM operations
+      // Preserve essential formatting while removing dangerous content
       let cleaned = htmlContent
-        // Remove HTML tags
-        .replace(/<[^>]*>/g, '')
-        // Clean up HTML entities
+        // Clean up HTML entities first
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
-        // Clean up whitespace
-        .replace(/\s+/g, ' ')
+        // Remove dangerous tags but preserve formatting
+        .replace(/<script.*?<\/script>/gi, '')
+        .replace(/<style.*?<\/style>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        // Normalize paragraph breaks
+        .replace(/<\/p>\s*<p>/gi, '\n\n')
+        .replace(/<p>/gi, '')
+        .replace(/<\/p>/gi, '')
+        // Convert line breaks
+        .replace(/<br\s*\/?>/gi, '\n')
+        // Preserve essential formatting tags (bold, italic, underline, super/subscript)
+        .replace(/<strong>/gi, '<strong>')
+        .replace(/<\/strong>/gi, '</strong>')
+        .replace(/<b>/gi, '<strong>')
+        .replace(/<\/b>/gi, '</strong>')
+        .replace(/<em>/gi, '<em>')
+        .replace(/<\/em>/gi, '</em>')
+        .replace(/<i>/gi, '<em>')
+        .replace(/<\/i>/gi, '</em>')
+        .replace(/<u>/gi, '<u>')
+        .replace(/<\/u>/gi, '</u>')
+        .replace(/<sup>/gi, '<sup>')
+        .replace(/<\/sup>/gi, '</sup>')
+        .replace(/<sub>/gi, '<sub>')
+        .replace(/<\/sub>/gi, '</sub>')
+        // Convert lists to simple formatting
+        .replace(/<ol>/gi, '\n')
+        .replace(/<\/ol>/gi, '\n')
+        .replace(/<ul>/gi, '\n')
+        .replace(/<\/ul>/gi, '\n')
+        .replace(/<li>/gi, '• ')
+        .replace(/<\/li>/gi, '\n')
+        // Remove any remaining unwanted HTML tags while preserving content
+        .replace(/<(?!\/?(strong|em|u|sup|sub)\b)[^>]*>/gi, '')
+        // Clean up excessive whitespace but preserve intentional line breaks
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
         .trim();
       
       return cleaned;
