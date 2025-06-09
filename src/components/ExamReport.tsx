@@ -440,43 +440,6 @@ const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
             </Grid>
         </Grid>
 
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          {Object.entries(subjectScores).map(([subject, data]) => (
-            <Grid item xs={12} sm={6} md={4} key={subject}>
-              <Card 
-                sx={{ 
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': { transform: 'scale(1.02)' }
-                }}
-                onClick={() => handleSubjectClick(subject)}
-              >
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    {subject}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body1" sx={{ mr: 1 }}>
-                      Score:
-                    </Typography>
-                    <Typography variant="h6" color="primary">
-                      {data.score}/{data.total}
-                    </Typography>
-                  </Box>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={data.percentage} 
-                    sx={{ height: 10, borderRadius: 5 }}
-                  />
-                  <Typography variant="body2" sx={{ mt: 1, textAlign: 'right' }}>
-                    {data.percentage}%
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-
         <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
           <Tooltip title="Download exam report as PDF">
             <Button
