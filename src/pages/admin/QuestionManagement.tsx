@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -29,8 +29,6 @@ import {
   Alert,
   CircularProgress,
   Divider,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -833,23 +831,7 @@ const QuestionManagement = () => {
                 Quick Insert Symbols:
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {[].map((item, index) => (
-                  <Tooltip key={index} title={`${item.label} - Click to insert`}>
-                    <Button
-                      className="symbol-button"
-                      onClick={() => {
-                        setCurrentEditor('question');
-                        setCurrentOptionIndex(-1);
-                        setTimeout(() => insertSymbol(item.symbol), 0);
-                      }}
-                      size="small"
-                      variant="outlined"
-                      sx={{ minWidth: '32px', height: '32px', p: 0.5 }}
-                    >
-                      {item.symbol}
-                    </Button>
-                  </Tooltip>
-                ))}
+                                 {/* Math symbols removed for performance */}
               </Box>
               <Typography variant="caption" sx={{ mt: 1, color: 'text.secondary' }}>
                 For complex expressions, use KaTeX: <code>{'$x^2$'}</code> or <code>{'$$\\frac{a}{b}$$'}</code>
@@ -880,30 +862,7 @@ const QuestionManagement = () => {
                 <Typography variant="body2" gutterBottom>
                   Option {String.fromCharCode(65 + index)}
                 </Typography>
-                <Box className="special-symbols">
-                  <Typography variant="caption" sx={{ width: '100%', mb: 1, fontWeight: 'bold' }}>
-                    Quick Symbols:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {[].map((item, symbolIndex) => (
-                      <Tooltip key={symbolIndex} title={`${item.label} - Click to insert`}>
-                        <Button
-                          className="symbol-button"
-                          onClick={() => {
-                            setCurrentEditor('option');
-                            setCurrentOptionIndex(index);
-                            setTimeout(() => insertSymbol(item.symbol), 0);
-                          }}
-                          size="small"
-                          variant="outlined"
-                          sx={{ minWidth: '28px', height: '28px', p: 0.3, fontSize: '0.8rem' }}
-                        >
-                          {item.symbol}
-                        </Button>
-                      </Tooltip>
-                    ))}
-                  </Box>
-                </Box>
+                {/* Math symbols removed for performance */}
                 <ReactQuill
                   ref={currentEditor === 'option' && currentOptionIndex === index ? quillRef : undefined}
                   value={option}
