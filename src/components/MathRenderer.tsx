@@ -29,6 +29,19 @@ const MathRenderer: React.FC<MathRendererProps> = ({
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
       
+      // Handle line breaks and paragraphs better
+      if (!cleanContent.includes('<p>') && !cleanContent.includes('<div>')) {
+        // Only apply paragraph formatting if content doesn't already have block elements
+        cleanContent = cleanContent
+          .replace(/\n\n/g, '</p><p>') // Convert double line breaks to paragraphs
+          .replace(/\n/g, '<br>') // Convert single line breaks to br tags
+          .replace(/^(?!<p>)/, '<p>') // Add opening p tag if not present
+          .replace(/(?<!<\/p>)$/, '</p>'); // Add closing p tag if not present
+      } else {
+        // Just convert line breaks to br tags for existing HTML content
+        cleanContent = cleanContent.replace(/\n/g, '<br>');
+      }
+      
       // Handle KaTeX formulas (both inline and display)
       // Display math: $$formula$$
       cleanContent = cleanContent.replace(/\$\$(.*?)\$\$/g, (match, formula) => {
@@ -58,12 +71,19 @@ const MathRenderer: React.FC<MathRendererProps> = ({
         }
       });
       
-      // Handle common mathematical symbols and formatting
+      // Handle common mathematical symbols and formatting (only if not already in HTML tags)
       cleanContent = cleanContent
-        .replace(/\^(\d+)/g, '<sup>$1</sup>') // Superscript numbers
-        .replace(/_(\d+)/g, '<sub>$1</sub>') // Subscript numbers
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-        .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+        .replace(/(?<!<[^>]*)\^(\d+)(?![^<]*>)/g, '<sup>$1</sup>') // Superscript numbers
+        .replace(/(?<!<[^>]*)_(\d+)(?![^<]*>)/g, '<sub>$1</sub>') // Subscript numbers
+        .replace(/(?<!<[^>]*)\*\*(.*?)\*\*(?![^<]*>)/g, '<strong>$1</strong>') // Bold
+        .replace(/(?<!<[^>]*)\*(.*?)\*(?![^<]*>)/g, '<em>$1</em>'); // Italic
+      
+      // Clean up multiple consecutive paragraphs
+      cleanContent = cleanContent
+        .replace(/<p><\/p>/g, '') // Remove empty paragraphs
+        .replace(/<p>\s*<\/p>/g, '') // Remove paragraphs with only whitespace
+        .replace(/(<\/p>\s*){2,}/g, '</p>') // Remove duplicate closing p tags
+        .replace(/(<p>\s*){2,}/g, '<p>'); // Remove duplicate opening p tags
       
       // Remove dangerous HTML tags but preserve safe formatting
       cleanContent = cleanContent.replace(/<script.*?<\/script>/gi, '');
@@ -74,9 +94,12 @@ const MathRenderer: React.FC<MathRendererProps> = ({
       return cleanContent;
     } catch (e) {
       console.warn('Error rendering math content:', e);
-      // Fallback to simple text cleaning
+      // Fallback to simple text cleaning but preserve basic formatting
       return content
-        .replace(/<[^>]*>/g, '')
+        .replace(/<script.*?<\/script>/gi, '')
+        .replace(/<style.*?<\/style>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')

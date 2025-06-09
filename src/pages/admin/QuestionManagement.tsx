@@ -70,12 +70,28 @@ const quillModules = {
     [{ 'script': 'sub'}, { 'script': 'super' }],
     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
     [{ 'color': [] }, { 'background': [] }],
+    ['blockquote', 'code-block'],
     ['clean'],
     ['formula'], // Math formula button
   ],
   clipboard: {
-    // Toggle to add a custom pasted html handler
+    // Keep pasted content as clean as possible
     matchVisual: false,
+  },
+  keyboard: {
+    bindings: {
+      // Custom key bindings for better control
+      'list autofill': {
+        key: ' ',
+        collapsed: true,
+        format: ['list'],
+        prefix: /^(1\.|-)$/,
+        handler: function(range: any, context: any) {
+          // Handle auto-formatting for lists
+          return true;
+        }
+      }
+    }
   }
 };
 
@@ -85,8 +101,8 @@ const quillFormats = [
   'script',
   'list', 'bullet',
   'color', 'background',
+  'blockquote', 'code-block',
   'formula',
-  'link', 'image', 'video',
 ];
 
 const optionQuillModules = {
@@ -94,6 +110,7 @@ const optionQuillModules = {
     ['bold', 'italic', 'underline'],
     [{ 'script': 'sub'}, { 'script': 'super' }],
     [{ 'color': [] }],
+    ['code'],
     ['formula'],
   ],
   clipboard: {
@@ -103,7 +120,7 @@ const optionQuillModules = {
 
 const optionQuillFormats = [
   'bold', 'italic', 'underline',
-  'script', 'color',
+  'script', 'color', 'code',
   'formula',
 ];
 
@@ -337,16 +354,73 @@ const QuestionManagement = () => {
     }
   };
 
+  const cleanHtmlContent = (htmlContent: string): string => {
+    if (!htmlContent) return '';
+    
+    let cleaned = htmlContent;
+    
+    // First, preserve important formatting by converting to markers
+    cleaned = cleaned
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**') // Bold
+      .replace(/<em>(.*?)<\/em>/g, '*$1*') // Italic
+      .replace(/<u>(.*?)<\/u>/g, '_$1_') // Underline (temp marker)
+      .replace(/<sup>(.*?)<\/sup>/g, '^$1^') // Superscript (temp marker)
+      .replace(/<sub>(.*?)<\/sub>/g, '~$1~') // Subscript (temp marker)
+      .replace(/<code>(.*?)<\/code>/g, '`$1`'); // Code
+    
+    // Clean up HTML tags but preserve mathematical formulas
+    cleaned = cleaned
+      .replace(/<p><br><\/p>/g, '\n') // Empty paragraphs with breaks
+      .replace(/<p>\s*<\/p>/g, '') // Empty paragraphs
+      .replace(/<\/p><p>/g, '\n\n') // Paragraph breaks
+      .replace(/<p>/g, '') // Opening p tags
+      .replace(/<\/p>/g, '') // Closing p tags
+      .replace(/<br\s*\/?>/g, '\n') // Line breaks
+      .replace(/<div>/g, '\n') // Div opening
+      .replace(/<\/div>/g, '') // Div closing
+      .replace(/&nbsp;/g, ' ') // Non-breaking spaces
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"');
+    
+    // Convert markers back to HTML
+    cleaned = cleaned
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+      .replace(/_(.*?)_/g, '<u>$1</u>') // Underline
+      .replace(/\^(.*?)\^/g, '<sup>$1</sup>') // Superscript
+      .replace(/~(.*?)~/g, '<sub>$1</sub>') // Subscript
+      .replace(/`(.*?)`/g, '<code>$1</code>'); // Code
+    
+    // Clean up extra whitespace
+    cleaned = cleaned
+      .replace(/\n{3,}/g, '\n\n') // Multiple line breaks
+      .replace(/^\n+/, '') // Leading line breaks
+      .replace(/\n+$/, '') // Trailing line breaks
+      .trim();
+    
+    return cleaned;
+  };
+
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Clean the content before sending to server
+      const cleanedFormData = {
+        ...formData,
+        question: cleanHtmlContent(formData.question),
+        options: formData.options.map(option => cleanHtmlContent(option))
+      };
+      
       if (editingQuestion) {
-        await axios.put(`/api/questions/${editingQuestion._id}`, formData, {
+        await axios.put(`/api/questions/${editingQuestion._id}`, cleanedFormData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess('Question updated successfully');
       } else {
-        await axios.post('/api/questions', formData, {
+        await axios.post('/api/questions', cleanedFormData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess('Question added successfully');
