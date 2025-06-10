@@ -70,26 +70,8 @@ const ExamSlip: React.FC<ExamSlipProps> = ({ student, showButtons = true, onClos
     console.log('ExamSlip phone number type:', typeof student.phoneNumber);
 
     useEffect(() => {
-        // We can still fetch some settings like venue if needed
-        const fetchSettings = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                
-                // Optional: Still fetch venue from settings
-                const response = await axios.get('/api/auth/settings', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                
-                if (response.data && response.data.examVenue) {
-                    setExamVenue(response.data.examVenue);
-                }
-            } catch (error) {
-                console.error('[ExamSlip] Error fetching settings:', error);
-                // We don't set fetch error anymore since we're using hardcoded instructions
-            }
-        };
-
-        fetchSettings();
+        // Venue is now hardcoded - no need to fetch from backend
+        setExamVenue('School Hall, Goodly Heritage Comprehensive High School, Lagos');
     }, []);
 
     const formatDateTime = (dateTime?: string) => {
