@@ -21,7 +21,7 @@ import QuestionManagement from './pages/admin/QuestionManagement';
 import StudentList from './pages/admin/StudentList';
 import RegisterStudent from './pages/admin/RegisterStudent';
 import ExamResults from './pages/admin/ExamResults';
-import Settings from './pages/admin/Settings';
+
 import { useAuth } from './contexts/AuthContext';
 import './App.css';
 
@@ -88,7 +88,7 @@ const App = () => {
               <Route path="/admin/students" element={<AdminLayout><StudentList /></AdminLayout>} />
               <Route path="/admin/register" element={<AdminLayout><RegisterStudent /></AdminLayout>} />
               <Route path="/admin/results" element={<AdminLayout><ExamResults /></AdminLayout>} />
-              <Route path="/admin/settings" element={<AdminLayout><Settings /></AdminLayout>} />
+
 
               {/* Public/Student Routes with Navbar */}
               <Route path="/*" element={

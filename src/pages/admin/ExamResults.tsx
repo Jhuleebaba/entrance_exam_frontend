@@ -109,7 +109,10 @@ const ExamResults = () => {
         ...examData,
         user: {
           ...examData.user,
-          // Provide default values for user fields that might be missing
+          // Ensure fullName is always available with fallback
+          fullName: examData.user.fullName || 
+            `${examData.user.firstName || ''} ${examData.user.surname || ''}`.trim() || 
+            'Student Name Not Available',
           surname: examData.user.surname || '',
           firstName: examData.user.firstName || '',
           email: examData.user.email || '',

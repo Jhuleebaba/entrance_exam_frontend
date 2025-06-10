@@ -100,6 +100,11 @@ const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
   const [showSubjectDetails, setShowSubjectDetails] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
+  // Ensure student name is always available
+  const studentName = examData.user.fullName || 
+    `${examData.user.firstName || ''} ${examData.user.surname || ''}`.trim() || 
+    'Student Name Not Available';
+
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Not available';
 
@@ -342,7 +347,7 @@ const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
                     <TableBody>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Full Name</TableCell>
-                        <TableCell sx={{ py: 1 }}>{examData.user.fullName}</TableCell>
+                        <TableCell sx={{ py: 1 }}>{studentName}</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', py: 1 }}>Exam Number</TableCell>
                         <TableCell sx={{ py: 1 }}>{examData.user.examNumber}</TableCell>
                       </TableRow>

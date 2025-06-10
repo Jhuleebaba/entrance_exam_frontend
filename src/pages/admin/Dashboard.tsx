@@ -114,13 +114,6 @@ const AdminDashboard = () => {
       link: '/admin/results',
       color: '#ed6c02',
     },
-    {
-      title: 'Settings',
-      count: 0, // No count needed for settings
-      icon: <BuildIcon sx={{ fontSize: 40 }} />,
-      link: '/admin/settings',
-      color: '#9c27b0',
-    },
   ];
 
   return (
@@ -234,14 +227,6 @@ const AdminDashboard = () => {
                     color="success"
                   >
                     View Results
-                  </Button>
-                  <Button
-                    component={RouterLink}
-                    to="/admin/settings"
-                    variant="contained"
-                    color="secondary"
-                  >
-                    Settings
                   </Button>
                 </Box>
               </Paper>

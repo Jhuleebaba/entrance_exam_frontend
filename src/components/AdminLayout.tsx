@@ -43,7 +43,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         { text: 'Students', icon: <PeopleIcon />, path: '/admin/students' },
         { text: 'Questions', icon: <QuestionsIcon />, path: '/admin/questions' },
         { text: 'Exam Results', icon: <ExamsIcon />, path: '/admin/results' },
-        { text: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
     ];
 
     const isActive = (path: string) => location.pathname === path;
