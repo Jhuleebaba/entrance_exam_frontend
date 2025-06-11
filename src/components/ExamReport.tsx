@@ -77,6 +77,13 @@ interface SubjectScore {
     percentage: number;
 }
 
+// Backend subject score interface
+interface BackendSubjectScore {
+    correct: number;
+    total: number;
+    percentage: number;
+}
+
 interface ExamReportProps {
     examData: {
         _id: string;
@@ -88,6 +95,7 @@ interface ExamReportProps {
         endTime?: string;
         completed: boolean;
         answers: Answer[];
+        subjectScores?: { [subject: string]: BackendSubjectScore };
         nextSteps?: string;
     };
 }
@@ -136,6 +144,33 @@ const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
   };
 
   const getSubjectScores = (): Record<string, SubjectScore> => {
+    // If backend has already calculated subject scores, use those
+    if (examData.subjectScores) {
+      const backendSubjectScores: Record<string, SubjectScore> = {};
+      
+      // Convert backend format to frontend format
+      Object.entries(examData.subjectScores).forEach(([subject, scores]) => {
+        backendSubjectScores[subject] = {
+          score: scores.correct,  // Backend uses 'correct', frontend uses 'score'
+          total: scores.total,
+          percentage: scores.percentage
+        };
+      });
+      
+      // Ensure all default subjects are present with zero scores if missing
+      const subjects = ['Mathematics', 'English', 'Verbal Reasoning', 'Quantitative Reasoning', 'General Paper'];
+      subjects.forEach(subject => {
+        if (!backendSubjectScores[subject]) {
+          backendSubjectScores[subject] = { score: 0, total: 20, percentage: 0 };
+        }
+      });
+      
+      console.log('ExamReport: Using backend-calculated subject scores:', backendSubjectScores);
+      return backendSubjectScores;
+    }
+
+    // Fallback to frontend calculation (for older data without subjectScores)
+    console.log('ExamReport: Backend subject scores not available, calculating on frontend');
     const subjectScores: Record<string, SubjectScore> = { ...DEFAULT_SUBJECTS };
 
     if (!examData.answers || !Array.isArray(examData.answers) || examData.answers.length === 0) {
@@ -164,11 +199,11 @@ const ExamReport: React.FC<ExamReportProps> = ({ examData }) => {
         }
 
         const subject = answer.question.subject;
-        const marks = answer.question.marks || 1;
 
         if (subject in subjectScores) {
           if (answer.isCorrect) {
-            subjectScores[subject].score += marks;
+            // Count correct questions, not marks
+            subjectScores[subject].score += 1;
           }
         }
       } catch (error) {

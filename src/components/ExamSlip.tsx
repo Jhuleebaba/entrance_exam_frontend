@@ -71,7 +71,7 @@ const ExamSlip: React.FC<ExamSlipProps> = ({ student, showButtons = true, onClos
 
     useEffect(() => {
         // Venue is now hardcoded - no need to fetch from backend
-        setExamVenue('School Hall, Goodly Heritage Comprehensive High School, Lagos');
+        setExamVenue('School Hall, Goodly Heritage Comprehensive High School, Ogun State.');
     }, []);
 
     const formatDateTime = (dateTime?: string) => {
